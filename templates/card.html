@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@700&family=Archivo:wght@400;500;700&display=swap" rel="stylesheet">
+<!-- Nur fuer das eine erlaubte Emoji auf dem 4c-Payoff. Die
+     Windows-Systemschrift Segoe UI Emoji kennt keine Laenderflaggen und
+     setzt stattdessen den Zwei-Buchstaben-Code: aus der deutschen Flagge
+     wurde auf der Karte "DE". Alle anderen Emojis braeuchten diese Schrift
+     nicht. -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
+<style>
+  /* ===================================================================
+     Bundestag Monitor - Instagram Carousel
+     Umsetzung von DESIGN-SYSTEM.md (im Repo). Wer hier etwas aendert,
+     aendert die Spec mit - oder bricht sie.
+
+     Canvas 1080x1350. Zwei Grundflaechen tragen das Deck (Ink und
+     Off-White), Stahlblau ist der einzige Akzent. Genau drei Schrift-
+     groessen pro Slide; Hierarchie kommt aus Gewicht, Farbe und
+     Versalien, nie aus einer vierten Groesse.
+     =================================================================== */
+
+  :root {
+    --ink:         #151B20;   /* dunkle Grundflaeche */
+    --navy:        #223341;   /* Highlight-Block, Balken, Pills, Fliesstext */
+    --off-white:   #FAFAF8;   /* helle Grundflaeche, Text auf Ink */
+    --card:        #FFFFFF;   /* Karten und Pills */
+    --accent:      #6FA0C8;   /* Stahlblau, sparsam */
+    --accent-deep: #2F6C9E;   /* dasselbe Blau, wo es auf Weiss tragen muss */
+
+    --slab: "Zilla Slab", Georgia, serif;
+
+    /* Genau drei Groessen. Keine vierte. */
+    --display: 80px;    /* Inhalts-Slides */
+    --display-xl: 96px; /* Cover und Abschluss */
+    --body: 32px;
+    --small: 24px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1080px; height: 1350px;
+    font-family: "Archivo", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  section {
+    width: 1080px; height: 1350px;
+    padding: 84px 76px 60px;
+    display: flex; flex-direction: column;
+    background: var(--off-white); color: var(--navy);
+  }
+  /* Wechselnder Grund. Mehr als diese zwei Flaechen gibt es nicht. */
+  section.on-ink { background: var(--ink); color: var(--off-white); }
+
+  /* --- Typografie ---------------------------------------------------- */
+
+  h1 {
+    font-family: var(--slab); font-weight: 700;
+    font-size: var(--display); line-height: 1.04;
+    letter-spacing: -0.025em;
+    /* Dieselbe Trennung wie auf dem Cover, und aus demselben Grund: die
+       Spec verbietet eine kleinere Display-Groesse ausdruecklich ("cut
+       words instead"), also muss ein Kompositum umbrechen statt ueber den
+       Rand zu laufen. Ohne diese zwei Zeilen stand auf der Diagramm-Slide
+       "Werbungskostenpauschbetra" - das g lag ausserhalb der 1080 px. */
+    hyphens: auto; overflow-wrap: break-word;
+    /* Die Grenze ist der eigentliche Lesbarkeitsgewinn. "hyphens: auto"
+       allein trennt auch kurze, vertraute Woerter, und der Zeilenumbruch
+       nimmt gierig die letzte passende Trennstelle - dabei kam
+       "KALTE PROGRES-SION: 102-EURO-PAU-SCHALE" heraus: sechs Zeilen mit
+       drei Bruechen mitten im Wort.
+       12 5 5 heisst: erst ab 12 Zeichen trennen, und nie weniger als 5
+       Zeichen stehen lassen. "Pauschale" (9) und "Progression" (11) sind
+       damit unantastbar, "Haf-tung" waere ein Verstoss gegen die Fuenf.
+       Was uebrig bleibt, bricht an der Kompositumfuge:
+       ELEKTROKLEINST-FAHRZEUGE statt ELEKTROKLEINSTFA-HRZEUGE.
+       Gemessen an zehn typischen Schlagzeilen: 44 Zeilen auf 40, und die
+       Problem-Schlagzeile von sechs Zeilen auf vier ohne jeden Trennstrich.
+       Abschalten ist keine Alternative - ohne Trennung bricht das Wort
+       hart, und dann steht dort "PENDLERPAUSCHAL" plus ein einzelnes "E". */
+    hyphenate-limit-chars: 12 5 5;
+  }
+  /* Abschluss traegt wie das Cover die grosse Groesse. */
+  h1.closing { font-size: var(--display-xl); line-height: 1.0; }
+
+  /* Signatur 1: Highlight-Block auf dem letzten Wort. Einer pro Headline. */
+  .hl {
+    display: inline-block; padding: 2px 16px 8px;
+    background: var(--navy); color: var(--accent);
+  }
+  .on-ink .hl { background: var(--off-white); color: var(--navy); }
+
+  p, li { font-size: var(--body); font-weight: 400; line-height: 1.4; }
+  .lead { text-wrap: pretty; }
+
+  /* --- Geruest ------------------------------------------------------- */
+
+  /* flex: 1 plus zentriert - so bleibt das untere Drittel nie leer. */
+  .content {
+    flex: 1; display: flex; flex-direction: column; justify-content: center;
+    gap: 40px; min-height: 0;
+  }
+
+  .foot {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    gap: 32px; font-size: var(--small); line-height: 1.35; opacity: 0.75;
+  }
+  .foot .src { text-align: right; white-space: pre-line; }
+
+  /* Eine Nachbemerkung steht hinter einer durchgehenden Haarlinie,
+     nie neben einem Stummelbalken. */
+  .note {
+    font-size: var(--small); line-height: 1.35; text-wrap: pretty;
+    border-top: 2px solid rgba(21, 27, 32, 0.18); padding-top: 22px;
+    opacity: 0.75;
+  }
+  .on-ink .note { border-top-color: rgba(250, 250, 248, 0.28); }
+
+  /* Signatur 4: gerundete Karten, ein einzelner gerichteter Schatten. */
+  .card {
+    background: var(--card); color: var(--navy);
+    border-radius: 24px; padding: 40px 44px;
+    box-shadow: 0 22px 44px -16px rgba(21, 27, 32, 0.30);
+  }
+  .on-ink .card { box-shadow: 0 22px 44px -16px rgba(0, 0, 0, 0.45); }
+  .card.gefuellt { background: var(--navy); color: var(--off-white); }
+  .card.kontur {
+    background: none; color: inherit; box-shadow: none;
+    border: 2px solid rgba(21, 27, 32, 0.35);
+  }
+  .on-ink .card.kontur { border-color: rgba(250, 250, 248, 0.45); }
+  .kartentitel { font-size: var(--body); font-weight: 700; margin-bottom: 26px; }
+
+  /* --- Cover: sechs Architekturen (Spec §6) ---------------------------- */
+  /* Ein wiederkehrender Account stirbt an Gleichfoermigkeit. Das Cover ist
+     deshalb die einzige Slide mit variabler Architektur - sechs Layouts aus
+     denselben zwei Grundflaechen, zwei Schriften und drei Groessen. Welches
+     kommt, zieht cover.py, nicht das Template.
+
+     Gemeinsam fuer alle sechs: keine Quelle, kein Handle, kein Zaehler, keine
+     Eyebrow. Der Haken ist die ganze Slide.
+
+     Laengenfestigkeit ist hier die eigentliche Arbeit: Schlagzeilen laufen
+     von 3 bis 14 Woertern. KEINE festen Hoehen, KEIN min-height auf einem
+     Textblock, kein ch-Mass, kein text-wrap: balance. Textbereiche sind
+     flex: 1 und zentriert, Fotobloecke sind die einzigen flex: none. Eine
+     lange Schlagzeile schiebt die Abstaende nach aussen, statt irgendwo
+     anzustossen - und wird nie kleiner gesetzt. */
+
+  section.cover { padding: 0; }
+  section.cover.ink   { background: var(--ink);       color: var(--off-white); }
+  section.cover.light { background: var(--off-white); color: var(--navy); }
+
+  .cover h1 {
+    font-size: var(--display-xl); line-height: 1.03;
+    letter-spacing: -0.025em; text-transform: uppercase;
+    /* Deutsch baut Komposita, und "PENDLERPAUSCHALE" ist versal bei 96 px
+       breiter als die Polsterung uebrig laesst. Kleiner setzen verbietet die
+       Spec ausdruecklich, also wird getrennt: hyphens zuerst (das Dokument
+       ist lang="de", Chromium trennt danach richtig), und nur wo gar keine
+       Trennstelle liegt, bricht das Wort hart. Ohne hyphens macht der
+       Hartbruch aus dem Wort "PENDLERPAUSCHAL" plus ein einzelnes "E" in
+       der naechsten Zeile. */
+    hyphens: auto; overflow-wrap: break-word;
+  }
+  /* Auf Ink ist der Akzent ein Wort, kein Block. Auf hellem Grund traegt die
+     Schlagzeile stattdessen den Highlight-Block (.hl). Nie beides. */
+  .accent { color: var(--accent); }
+
+  /* Stuetzcopy: ein <div> je Satz in einer Spalte. Wo ein Umbruch sitzen
+     soll, wird er strukturell gesagt, nicht ueber eine Breite erjagt. */
+  .cover-copy {
+    display: flex; flex-direction: column; gap: 12px;
+    font-size: var(--body); line-height: 1.4; text-wrap: pretty;
+  }
+  .cover.ink   .cover-copy { color: rgba(250, 250, 248, 0.82); }
+  .cover.light .cover-copy { color: rgba(34, 51, 65, 0.82); }
+
+  /* Der Textbereich traegt die Polsterung und ist elastisch. */
+  .cover-text {
+    flex: 1; display: flex; flex-direction: column; justify-content: center;
+    min-width: 0;
+  }
+
+  .cover-foto { overflow: hidden; flex: none; }
+  .cover-foto img {
+    display: block; width: 100%; height: 100%; object-fit: cover;
+    filter: grayscale(1) contrast(1.06);
+  }
+
+  /* 1a Zahl zuerst: die Summe IST die Meldung. Figur und Schlagzeile stehen
+     ohne Abstand uebereinander, damit sie als ein Block lesen. */
+  .cover-1a .cover-text { padding: 96px 76px 84px; gap: 52px; }
+  .cover-1a .hero {
+    font-family: var(--slab); font-weight: 700; font-size: 240px;
+    line-height: 0.9; letter-spacing: -0.04em; white-space: nowrap;
+    color: var(--accent);
+  }
+  /* Laenger als "1.500 €" passt die Figur nicht mehr in eine Zeile. Die 200
+     ERSETZEN die 240, sie kommen nicht dazu: es bleiben drei Groessen. */
+  .cover-1a .hero.breit { font-size: 200px; }
+  .cover-1a .block { display: flex; flex-direction: column; }
+  .cover-1a .strich {
+    border-top: 3px solid rgba(250, 250, 248, 0.28); padding-top: 40px;
+  }
+
+  /* 1b Frage: dasselbe Zeichen wie das Frage-Badge auf Slide 3, nur gross.
+     Die Scheibe ist eine Grafik, keine vierte Schriftgroesse. */
+  .cover-1b .cover-text {
+    padding: 96px 76px 84px; align-items: center; text-align: center; gap: 56px;
+  }
+  .cover-1b .scheibe {
+    width: 200px; height: 200px; border-radius: 50%; flex: none;
+    background: var(--off-white); color: var(--navy);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--slab); font-weight: 700; font-size: 140px; line-height: 1;
+  }
+
+  /* 1c Vorher / Nachher: die Aenderung sind zwei Zahlen. Beide Zeilen teilen
+     sich eine feste Labelspur, damit die Figuren buendig stehen. */
+  .cover-1c .cover-text { padding: 96px 76px 84px; gap: 64px; }
+  .cover-1c .paare { display: flex; flex-direction: column; gap: 28px; }
+  .cover-1c .paar { display: flex; align-items: baseline; gap: 28px; }
+  .cover-1c .paar .spur {
+    width: 150px; flex: none; font-size: var(--body); font-weight: 700;
+  }
+  .cover-1c .paar .figur {
+    font-family: var(--slab); font-weight: 700; font-size: var(--display-xl);
+    line-height: 1; letter-spacing: -0.025em; white-space: nowrap;
+  }
+  /* Volltonfarbe, keine Alpha-Tinte: getoent faellt der alte Wert unter den
+     Kontrast, den §1 verlangt. */
+  .cover-1c .paar.alt .figur {
+    color: #6E7C88; text-decoration: line-through; text-decoration-thickness: 6px;
+  }
+  .cover-1c .strich {
+    border-top: 3px solid rgba(34, 51, 65, 0.18); padding-top: 40px;
+  }
+
+  /* 1d Senkrechter Schnitt: Foto links ueber die volle Hoehe. min-width: 0
+     auf der Textspalte ist tragend - ohne das sprengt ein langes Wort die
+     Fotospalte heraus. */
+  section.cover.cover-1d { flex-direction: row; }
+  .cover-1d .cover-foto { width: 430px; height: 1350px; }
+  .cover-1d .cover-text { padding: 80px 64px; gap: 44px; }
+  /* Die Textspalte ist 650 px breit - 96 px versal passen da nicht mehr. */
+  .cover-1d h1 { font-size: var(--display); }
+
+  /* 1e Foto unten: das Foto ist fest, der Textblock elastisch. Eine laengere
+     Schlagzeile frisst ihren eigenen Weissraum, statt das Bild aus dem
+     Rahmen zu schieben. */
+  .cover-1e .cover-text { padding: 88px 76px; gap: 40px; }
+  .cover-1e .cover-foto { height: 660px; }
+
+  /* 1f Vollbild mit Band: nur fuer ein wirklich starkes Bild und eine kurze
+     Schlagzeile. Das Band ist volles Ink, nie ein Verlauf und nie ein
+     durchscheinender Schleier - und es waechst mit dem Text nach oben. */
+  section.cover.cover-1f { position: relative; display: block; }
+  .cover-1f .cover-foto { position: absolute; inset: 0; }
+  .cover-1f .band {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: var(--ink); color: var(--off-white);
+    padding: 64px 72px 76px;
+    display: flex; flex-direction: column; gap: 32px;
+  }
+
+  /* --- Signatur 5: Pfeilliste statt Punkten --------------------------- */
+  /* Der Pfeil steht in einer 80px-Spur und sitzt in einer 45px hohen Box:
+     dadurch liegt er auf der ERSTEN Zeile seines Textes, egal ob der eine
+     oder drei Zeilen lang ist. Niemals ueber line-height ausrichten. */
+
+  .arrows {
+    display: grid; grid-template-columns: 80px 1fr;
+    row-gap: 30px; column-gap: 18px; list-style: none; align-items: start;
+  }
+  .arrows li { display: contents; }
+  .arrows .mark {
+    font-family: var(--slab); font-weight: 700; font-size: var(--display);
+    height: 45px; display: flex; align-items: center; line-height: 1;
+    color: var(--accent-deep);
+  }
+  .on-ink .arrows .mark { color: var(--accent); }
+  .arrows .txt { font-size: var(--body); line-height: 1.4; text-wrap: pretty; }
+
+  /* --- Signatur 6: Frage-Badge ---------------------------------------- */
+  /* 84px-Spur, die alle Textzeilen der Karte ueberspannt - dasselbe System
+     wie die 80px-Pfeilspur darunter. Einer pro Deck. */
+
+  /* Der Klassenname traegt bewusst das Suffix: die Section bekommt den
+     Slide-Namen als Klasse, und ".begriff" haette dort das ganze Raster der
+     Slide auf zwei Spalten gestellt. */
+  .begriff-karte {
+    display: grid; grid-template-columns: 84px 1fr;
+    column-gap: 28px; row-gap: 20px; align-items: start;
+  }
+  .badge {
+    grid-column: 1; width: 84px; height: 84px; border-radius: 100px;
+    background: var(--navy); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--slab); font-weight: 700; font-size: 60px; line-height: 1;
+  }
+  .begriff-karte p { grid-column: 2; text-wrap: pretty; }
+  .begriff-karte .beispiel { font-weight: 700; }
+
+  /* --- Signatur 7: Sitzbogen ------------------------------------------ */
+
+  .bogen { position: relative; }
+  .bogen svg { display: block; width: 100%; height: auto; }
+  .bogen-mitte {
+    position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+    width: 460px; text-align: center;
+  }
+  .bogen-mitte .zahl {
+    font-family: var(--slab); font-weight: 700; font-size: var(--display);
+    line-height: 1; letter-spacing: -0.025em;
+  }
+  .bogen-mitte .basis { font-size: var(--small); opacity: 0.75; }
+  .legende {
+    display: grid; grid-template-columns: 1fr 1fr;
+    column-gap: 40px; row-gap: 16px; font-size: var(--small);
+  }
+  .legende div { display: flex; align-items: center; gap: 14px; }
+  .swatch { width: 20px; height: 20px; border-radius: 100px; flex: none; }
+  .swatch.hohl { background: none; border: 3px solid currentColor; }
+
+  /* --- Signatur 8: Abstimmungsbalken ---------------------------------- */
+
+  .bars { display: flex; flex-direction: column; gap: 46px; }
+  .bar-label {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: 24px; font-size: var(--body); font-weight: 500; margin-bottom: 14px;
+  }
+  .bar-value {
+    font-family: var(--slab); font-weight: 700; white-space: nowrap;
+  }
+  .bar-track {
+    height: 26px; border-radius: 100px; background: rgba(21, 27, 32, 0.14);
+    overflow: hidden;
+  }
+  .on-ink .bar-track { background: rgba(250, 250, 248, 0.18); }
+  .bar-fill { height: 100%; border-radius: 100px; background: var(--navy); }
+  .on-ink .bar-fill { background: var(--off-white); }
+  .bar-row.muted .bar-fill { background: rgba(34, 51, 65, 0.38); }
+  .on-ink .bar-row.muted .bar-fill { background: rgba(250, 250, 248, 0.42); }
+  /* Ein Nein ist nie ein gefuellter Balken - ein gefuellter Balken liest
+     sich als Zustimmung. Leere Kontur, fertig. */
+  .bar-row.nein .bar-track {
+    background: none; border: 2px solid rgba(21, 27, 32, 0.35);
+  }
+  .on-ink .bar-row.nein .bar-track { border-color: rgba(250, 250, 248, 0.45); }
+  .bar-row.nein .bar-fill { display: none; }
+
+  /* --- Signatur 3: Pill-Reihen fuer Zahlenlisten ---------------------- */
+
+  .pills { display: flex; flex-direction: column; gap: 18px; }
+  /* Abwechselnd gefuellt und weiss. Womit die Reihe anfaengt, entscheidet
+     der Grund: eine weisse Pill auf Off-White verschwindet, eine navyfarbene
+     auf Ink ebenso. */
+  .pill {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 28px; border-radius: 100px; padding: 22px 44px;
+    background: var(--navy); color: var(--off-white);
+  }
+  .pill:nth-child(even) { background: var(--card); color: var(--navy); }
+  .on-ink .pill { background: var(--card); color: var(--navy); }
+  .on-ink .pill:nth-child(even) { background: var(--navy); color: var(--off-white); }
+  .pill .label { font-size: var(--body); font-weight: 500; }
+  .pill .figure {
+    font-family: var(--slab); font-weight: 700; font-size: var(--display);
+    line-height: 1; letter-spacing: -0.025em; white-space: nowrap;
+  }
+
+  /* --- Slide 4: die vier Muster --------------------------------------- */
+
+  /* 4a Vorher / Nachher */
+  .vn {
+    display: grid; grid-template-columns: 1fr auto auto;
+    column-gap: 32px; row-gap: 28px; align-items: baseline;
+  }
+  .vn .kopf { font-size: var(--small); opacity: 0.75; text-align: right; }
+  .vn .kopf.neu { opacity: 1; font-weight: 700; }
+  .vn .zeile-label { font-size: var(--body); font-weight: 700; }
+  .vn .alt {
+    font-size: var(--body); opacity: 0.75; text-align: right;
+    white-space: nowrap;
+  }
+  .vn .wert {
+    font-family: var(--slab); font-weight: 700; font-size: var(--display);
+    line-height: 1; letter-spacing: -0.025em; text-align: right;
+    white-space: nowrap;
+  }
+
+  /* 4b Gilt fuer dich / gilt nicht */
+  .bullets { display: flex; flex-direction: column; gap: 20px; list-style: none; }
+  .bullets li {
+    display: flex; gap: 20px; align-items: flex-start; text-wrap: pretty;
+  }
+  .bullets .ikon { width: 30px; height: 30px; flex: none; margin-top: 7px; }
+
+  /* 4c Checkliste */
+  .payoff {
+    /* Emoji-Schrift ZUERST: sie deckt nur Emoji ab, alles andere faellt
+       auf Zilla Slab durch. Andersherum griffe die Systemschrift fuer
+       Flaggen, und dort steht dann "DE" statt der Flagge. Dies ist die
+       einzige Regel im Deck, die eine Emoji-Schrift nennt - das eine
+       erlaubte Emoji steht nur hier (siehe DESIGN-SYSTEM.md, Don'ts). */
+    font-family: "Noto Color Emoji", var(--slab), Georgia, serif;
+    font-weight: 700; font-size: var(--display);
+    line-height: 1; letter-spacing: -0.025em; margin-bottom: 20px;
+  }
+
+  /* 4d Zwei Faelle - Subgrid, damit die Zeilen ueber beide Karten liegen,
+     egal wie die Ueberschriften umbrechen. Keine Handhoehen, kein
+     min-height. */
+  .faelle { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .fall {
+    grid-row: 1 / -1; display: grid; grid-template-rows: subgrid;
+    row-gap: 22px; align-content: start;
+    border-radius: 24px; padding: 40px 36px;
+    background: var(--card); color: var(--navy);
+    box-shadow: 0 22px 44px -16px rgba(21, 27, 32, 0.30);
+  }
+  .on-ink .fall { box-shadow: 0 22px 44px -16px rgba(0, 0, 0, 0.45); }
+  .fall.dunkel { background: var(--navy); color: var(--off-white); }
+  .fall .piktogramm { width: 46px; height: 46px; }
+  .fall .fall-label { font-size: var(--body); font-weight: 700; }
+  .fall .kennzahl-label { font-size: var(--small); opacity: 0.75; }
+  .fall .kennzahl-wert {
+    font-family: var(--slab); font-weight: 700; font-size: var(--display);
+    line-height: 1; letter-spacing: -0.025em; white-space: nowrap;
+  }
+
+  /* Strich-Piktogramme erben die Textfarbe der Karte und funktionieren
+     deshalb auf Weiss wie auf Navy. Nie Emoji, nie gefuellte Illustration. */
+  .ikon, .piktogramm {
+    fill: none; stroke: currentColor; stroke-width: 2.4;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .piktogramm { stroke-width: 2; }
+
+  /* Abschluss-Slide: Handlungsblock, keine Button-Optik mit Icon. */
+  .action {
+    align-self: flex-start; border-radius: 100px;
+    font-size: var(--body); font-weight: 700; padding: 22px 34px;
+    background: var(--off-white); color: var(--navy);
+  }
+  section:not(.on-ink) .action { background: var(--navy); color: var(--off-white); }
+</style>
+</head>
+<body>
+
+{# --- Strich-Piktogramme, eine Stelle fuer alle Slides ------------------- #}
+{% macro ikon(name, klasse='ikon') %}
+  {% if name == 'check' %}
+    <svg class="{{ klasse }}" viewBox="0 0 24 24"><path d="M4 12.5 L9.5 18 L20 6"/></svg>
+  {% elif name == 'cross' %}
+    <svg class="{{ klasse }}" viewBox="0 0 24 24"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+  {% elif name == 'haus' %}
+    <svg class="{{ klasse }}" viewBox="0 0 24 24"><path d="M3 11 L12 4 L21 11 M5.5 9.5 V20 H18.5 V9.5"/></svg>
+  {% elif name == 'auto' %}
+    <svg class="{{ klasse }}" viewBox="0 0 24 24"><path d="M4 16.5 v-3 l2.2-5 h11.6 l2.2 5 v3 z"/><path d="M6.2 8.5 h11.6"/><path d="M8 16.5 v1.6 M16 16.5 v1.6"/></svg>
+  {% elif name == 'geld' %}
+    <svg class="{{ klasse }}" viewBox="0 0 24 24"><path d="M3 7 h18 v10 h-18 z"/><circle cx="12" cy="12" r="3"/></svg>
+  {% elif name == 'uhr' %}
+    <svg class="{{ klasse }}" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7 v5 l3.5 2.5"/></svg>
+  {% elif name == 'dokument' %}
+    <svg class="{{ klasse }}" viewBox="0 0 24 24"><path d="M6 3 h8 l4 4 v14 h-12 z M14 3 v4 h4"/><path d="M9 13 h6 M9 17 h6"/></svg>
+  {% else %}
+    <svg class="{{ klasse }}" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 20 c0-4 3.5-6 7-6 s7 2 7 6"/></svg>
+  {% endif %}
+{% endmacro %}
+
+{# --- Stuetzcopy: ein <div> je Satz, nie mehr als zwei ------------------- #}
+{% macro copy(saetze) %}
+  {% if saetze %}
+    <div class="cover-copy">
+      {% for satz in saetze %}<div>{{ satz | betrag }}</div>{% endfor %}
+    </div>
+  {% endif %}
+{% endmacro %}
+
+{% if kind == 'hook' %}
+{# Cover: eine von sechs Architekturen, gezogen in cover.py. Foto und Haken,
+   sonst nichts. Der Fotocredit steht in der Caption - auf dem Cover hat er
+   nach der Spec nichts zu suchen. #}
+<section class="cover cover-{{ cover_variante }} {{ ground }}">
+
+  {% if cover_variante == '1a' %}
+    <div class="cover-text">
+      {# Figur und Schlagzeile ohne Abstand: ein Block, nicht zwei. #}
+      <div class="block">
+        <div class="hero{% if figur_breit %} breit{% endif %}">{{ figur | safe }}</div>
+        <h1>{{ headline_html | safe }}</h1>
+      </div>
+      {# Die Haarlinie traegt die Stuetzzeile. Ohne Zeile keine Linie: ein
+         Strich ueber Nichts ist Dekoration, und die gibt es hier nicht. #}
+      {% if lead_saetze %}<div class="strich">{{ copy(lead_saetze) }}</div>{% endif %}
+    </div>
+
+  {% elif cover_variante == '1b' %}
+    <div class="cover-text">
+      <div class="scheibe">?</div>
+      <h1>{{ headline_html | safe }}</h1>
+      {{ copy(lead_saetze) }}
+    </div>
+
+  {% elif cover_variante == '1c' %}
+    <div class="cover-text">
+      <h1>{{ headline_html | safe }}</h1>
+      <div class="paare">
+        <div class="paar alt">
+          <span class="spur">bisher</span>
+          <span class="figur">{{ vn.bisher | safe }}</span>
+        </div>
+        <div class="paar">
+          <span class="spur">{{ vn.kopf_neu | betrag }}</span>
+          <span class="figur">{{ vn.neu | safe }}</span>
+        </div>
+      </div>
+      {% if lead_saetze %}<div class="strich">{{ copy(lead_saetze) }}</div>{% endif %}
+    </div>
+
+  {% elif cover_variante == '1d' %}
+    <figure class="cover-foto"><img src="{{ bild.data_uri }}" alt=""></figure>
+    <div class="cover-text">
+      <h1>{{ headline_html | safe }}</h1>
+      {{ copy(lead_saetze) }}
+    </div>
+
+  {% elif cover_variante == '1e' %}
+    <div class="cover-text">
+      <h1>{{ headline_html | safe }}</h1>
+      {{ copy(lead_saetze) }}
+    </div>
+    <figure class="cover-foto"><img src="{{ bild.data_uri }}" alt=""></figure>
+
+  {% elif cover_variante == '1f' %}
+    <figure class="cover-foto"><img src="{{ bild.data_uri }}" alt=""></figure>
+    <div class="band">
+      <h1>{{ headline_html | safe }}</h1>
+      {{ copy(lead_saetze) }}
+    </div>
+  {% endif %}
+
+</section>
+
+{% else %}
+<section class="{{ kind }} {{ 'on-ink' if ground == 'ink' else 'on-light' }}">
+
+  {# Jede Slide oeffnet direkt auf der Headline - keine Eyebrow, kein Kicker. #}
+  <h1{% if kind == 'cta' %} class="closing"{% endif %}>{{ headline_html | safe }}</h1>
+
+  <div class="content">
+
+    {% if kind == 'chart' %}
+      {% if bogen %}
+        <div class="bogen">
+          <svg viewBox="{{ bogen.viewbox }}" role="img">
+            {% for p in bogen.punkte %}
+              {% if p.hohl %}
+                <circle cx="{{ p.x }}" cy="{{ p.y }}" r="{{ bogen.dot - 1.2 }}"
+                        fill="none" stroke="{{ p.farbe }}" stroke-width="2.4"/>
+              {% else %}
+                <circle cx="{{ p.x }}" cy="{{ p.y }}" r="{{ bogen.dot }}" fill="{{ p.farbe }}"/>
+              {% endif %}
+            {% endfor %}
+          </svg>
+          {# Die noetige Mehrheit steht hier - genau einmal auf der Slide. #}
+          <div class="bogen-mitte">
+            <div class="zahl">{{ bogen.ja }}</div>
+            <div class="basis">von {{ bogen.benoetigt }} benötigten</div>
+          </div>
+        </div>
+        <div class="legende">
+          {% for f in bogen.legende %}
+            <div><span class="swatch" style="background: {{ f.farbe }}"></span>
+              <span>{{ f.name }}: {{ f.ja }} Ja von {{ f.sitze }}</span></div>
+          {% endfor %}
+          <div><span class="swatch hohl"></span>
+            <span>hohler Punkt: dagegen oder enthalten</span></div>
+        </div>
+      {% else %}
+        <div class="bars">
+          {% for bar in chart.balken %}
+            <div class="bar-row {{ bar.tonung }}">
+              <div class="bar-label">
+                <span>{{ bar.label | betrag }}</span>
+                <span class="bar-value">{{ bar.anzeige | safe }}</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill" style="width: {{ bar.prozent }}%"></div></div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+      {% if hinweis %}<p class="note">{{ hinweis | betrag }}</p>{% endif %}
+
+    {% elif kind == 'begriff' %}
+      {# Die Erklaerkarte fuehrt mit dem Frage-Badge und endet an einem
+         gerechneten Beispiel. #}
+      <div class="card">
+        <div class="begriff-karte">
+          <div class="badge" style="grid-row: span {{ begriff.saetze | length + (1 if begriff.beispiel else 0) }}">?</div>
+          {% for satz in begriff.saetze %}<p>{{ satz | betrag }}</p>{% endfor %}
+          {% if begriff.beispiel %}<p class="beispiel">{{ begriff.beispiel | betrag }}</p>{% endif %}
+        </div>
+      </div>
+      {% if begriff.warum %}
+        <p class="kartentitel" style="margin: 0">Warum überhaupt ändern?</p>
+        <ul class="arrows">
+          {% for grund in begriff.warum %}
+            <li><span class="mark">&rarr;</span><span class="txt">{{ grund | betrag }}</span></li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+    {% elif kind == 'context' %}
+      {# Rueckfall fuer Decks ohne Begriffskarte (Profil-Modus). #}
+      <ul class="arrows">
+        {% for absatz in context %}
+          <li><span class="mark">&rarr;</span><span class="txt">{{ absatz | betrag }}</span></li>
+        {% endfor %}
+      </ul>
+
+    {% elif kind == 'folgen' %}
+
+      {% if folgen.muster == '4a' %}
+        <div class="card">
+          <div class="vn">
+            <span></span>
+            <span class="kopf">bisher</span>
+            <span class="kopf neu">{{ folgen.kopf_neu }}</span>
+            {% for zeile in folgen.zeilen %}
+              <span class="zeile-label">{{ zeile.label | betrag }}</span>
+              <span class="alt">{{ zeile.bisher | safe }}</span>
+              <span class="wert">{{ zeile.neu | safe }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {# Was kein Vorher/Nachher ist, verlaesst die Tabelle und wird Pill. #}
+        {% if folgen.pills %}
+          <div class="pills">
+            {% for pill in folgen.pills %}
+              <div class="pill"><span class="label">{{ pill.label | betrag }}</span>
+                <span class="figure">{{ pill.wert | safe }}</span></div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+      {% elif folgen.muster == '4b' %}
+        <div class="card gefuellt">
+          <p class="kartentitel">Ja, wenn</p>
+          <ul class="bullets">
+            {% for zeile in folgen.ja %}
+              <li>{{ ikon('check') }}<span>{{ zeile | betrag }}</span></li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="card kontur">
+          <p class="kartentitel">Nein, wenn</p>
+          <ul class="bullets">
+            {% for zeile in folgen.nein %}
+              <li>{{ ikon('cross') }}<span>{{ zeile | betrag }}</span></li>
+            {% endfor %}
+          </ul>
+        </div>
+
+      {% elif folgen.muster == '4c' %}
+        <div class="card">
+          <div class="payoff">{{ folgen.payoff | betrag }}</div>
+          <p>{{ folgen.erklaerung | betrag }}</p>
+        </div>
+        {% if folgen.schritte %}
+          <p class="kartentitel" style="margin: 0">{{ folgen.schritt_titel }}</p>
+          <ul class="arrows">
+            {% for schritt in folgen.schritte %}
+              <li><span class="mark">&rarr;</span><span class="txt">{{ schritt | betrag }}</span></li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+      {% elif folgen.muster == '4d' %}
+        <div class="faelle" style="grid-template-rows: repeat({{ folgen.zeilen_anzahl }}, auto)">
+          {% for fall in folgen.faelle %}
+            <div class="fall {{ 'dunkel' if loop.index0 == 1 else '' }}">
+              {{ ikon(fall.symbol, 'piktogramm') }}
+              <div class="fall-label">{{ fall.label | betrag }}</div>
+              {% for kennzahl in fall.kennzahlen %}
+                <div>
+                  <div class="kennzahl-label">{{ kennzahl.label | betrag }}</div>
+                  <div class="kennzahl-wert">{{ kennzahl.wert | safe }}</div>
+                </div>
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if folgen.hinweis %}<p class="note">{{ folgen.hinweis | betrag }}</p>{% endif %}
+
+    {% elif kind == 'cta' %}
+      <p class="lead">{{ cta_body | betrag }}</p>
+      <span class="action">{{ cta_action }}</span>
+    {% endif %}
+
+  </div>
+
+  <div class="foot">
+    <span>{{ index }} / {{ total }}</span>
+    <span class="src">{{ foot_source }}</span>
+  </div>
+
+</section>
+{% endif %}
+
+</body>
+</html>

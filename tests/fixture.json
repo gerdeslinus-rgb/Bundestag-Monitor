@@ -1,0 +1,397 @@
+{
+ "faelle": [
+  {
+   "item": {
+    "id": "0c7b02ce36b91522",
+    "source": "Bundestag, Tagesordnung Plenarsitzung",
+    "weight": 3,
+    "tier": "kern",
+    "title": "Abstimmung über eine Vorlage zur Senkung der Energiekosten",
+    "text": "Der Bundestag befasst sich am Donnerstag, 24. September 2026, mit der Forderung der AfD-Fraktion nach Beendigung aller deutschen Klimaschutzmaßnahmen . In dem zur Abstimmung stehenden Antrag ( 21/5322 (Dokument, öffnet ein neues Fenster) ) dringt die Fraktion „aus Anlass der aktuellen Energiekrise“ darauf, alle Gesetze und Verordnungen „oder Teile“ daraus aufzuheben, aus denen sich „Anforderungen und Verpflichtungen mit Bezug auf den 'Klimaschutz' ergeben\". Der Ausschuss für Umwelt, Klimaschutz, Naturschutz und nukleare Sicherheit legt dazu eine Beschlussempfehlung vor. Darüber hinaus legt die AfD-Fraktion erstmals einen Antrag mit dem Titel \"Der drohenden Kraftstoffkrise durch souveräne Energiepolitik entgegenwirken – Industrie und Mittelstand retten\" ( 21/8115 (Dokument, öffnet ein neues Fenster) ) vor, der im Anschluss zur federführenden Beratung an den Ausschuss für Wirtschaft und Energie überwiesen werden soll. Erster Antrag der AfD Die Bundesregierung soll demnach schnellstmöglich alle internationalen Abkommen und Vereinbarungen kündigen, aus denen sich Verpflichtungen zum Schutz des Klimas oder zur Reduzierung von CO 2 -Emissionen ergeben, vor allem das Pariser Klimaabkommen. Mit Blick auf den europäischen Green Deal solle sie außerdem Änderungen des EU-Rechts anstreben. Auch das Treibhausgas-Emissionshandelsgesetz (TEHG) und das Brennstoffhandelsgesetz (BEHG) sowie alle durch TEHG und BEHG ermächtigten Verordnungen sollen nach dem Willen der Fraktion aufgehoben werden, um die europäische und nationale CO 2 -Bepreisung zu beenden und \"Wirtschaft und Bürger nachhaltig zu entlasten\", wie es im Antrag ( 21/5322 (Dokument, öffnet ein neues Fenster) ) heißt. Darüber hinaus dringt die AfD auf die Aufhebung des Standortauswahlgesetzes sowie die Änderung des Atomgesetzes mit dem Ziel der erneuten Nutzung der Kernkraft zur Energiegewinnung. Ziel sei es, die Souveränität und Wettbewerbsfähigkeit Deutschlands in der Energieversorgung langfristig sicherzustellen, schreiben die Abgeordnete. Als Begründung führen sie an, dass das Weltklima von Natur aus nicht konstant sei, sondern \"ständigen und teilweise dramatischen natürlichen Veränderungen\" unterliege. \"Klimaschutz\" bezeichnet die AfD in ihrem Antrag als politischen Kampfbegriff. Das Klima lasse sich nicht \"schützen\". Die vom Menschen verursachten CO 2 -Emissionen in Deutschland seien \"im weltweiten Maßstab zu vernachlässigen\". Zweiter Antrag der AfD Die AfD-Fraktion fordert in einem Antrag ( 21/8115 (Dokument, öffnet ein neues Fenster) ), „Maßnahmen zur Sicherung der Energieversorgung“ zu ergreifen. Die jüngsten geopolitischen Entwicklungen, insbesondere militärische Eskalationen mit unmittelbaren Auswirkungen auf die internationalen Energie- und Rohstoffmärkte, hätten die Grenzen und damit auch Unzulänglichkeiten der bisherigen europäischen Krisenreaktionsmechanismen offengelegt. Die Bundesregierung wird aufgefordert, angesichts anhaltend hoher Energiepreise energiebezogene Sanktionen, Embargos und sonstige Beschränkungen auf ihre Auswirkungen für Versorgungssicherheit, Energiepreise und industrielle Wettbewerbsfähigkeit hin zu überprüfen und soweit erforderlich aufzuheben. (eis/sas/23.09.2026)",
+    "url": "https://www.bundestag.de/dokumente/textarchiv/2026/kw39-de-energiekosten-1216634",
+    "date": "2026-09-24"
+   },
+   "recherche": {
+    "erklaerung": "Es geht um die CO2-Bepreisung: Wer fossile Brennstoffe wie Benzin, Heizöl, Erdgas oder Kohle verkauft, muss dafür Zertifikate kaufen, deren Preis sich nach dem ausgestoßenen CO2 richtet. Dieser Aufschlag wird an Verbraucherinnen und Verbraucher weitergegeben, etwa an der Tankstelle oder bei der Heizkostenabrechnung, und soll einen Anreiz zum Energiesparen und Umstieg auf klimafreundlichere Alternativen setzen. Die AfD will diese CO2-Bepreisung sowie weitere Klimaschutzgesetze und internationale Klimaabkommen komplett abschaffen.",
+    "vorher_nachher": [
+     {
+      "label": "CO2-Preis 2021 (Einführung)",
+      "wert": 25.0,
+      "einheit": "Euro/Tonne",
+      "quelle_url": "https://www.gesetze-im-internet.de/behg/__10.html"
+     },
+     {
+      "label": "CO2-Preis 2022/2023",
+      "wert": 30.0,
+      "einheit": "Euro/Tonne",
+      "quelle_url": "https://www.gesetze-im-internet.de/behg/__10.html"
+     },
+     {
+      "label": "CO2-Preis 2024",
+      "wert": 45.0,
+      "einheit": "Euro/Tonne",
+      "quelle_url": "https://www.gesetze-im-internet.de/behg/__10.html"
+     },
+     {
+      "label": "CO2-Preis 2025",
+      "wert": 55.0,
+      "einheit": "Euro/Tonne",
+      "quelle_url": "https://www.gesetze-im-internet.de/behg/__10.html"
+     }
+    ],
+    "kaufkraft": {},
+    "betroffene": "Betroffen sind alle Autofahrer, Mieter und Hausbesitzer, die für Benzin, Diesel, Heizöl oder Erdgas bezahlen, sowie Industrie- und Mittelstandsbetriebe mit hohem Energieverbrauch.",
+    "alltagswirkung": "Eine Abschaffung der CO2-Bepreisung würde fossile Energie wie Sprit und Heizöl spürbar günstiger machen, gleichzeitig entfielen aber auch die daraus finanzierten Entlastungen wie die Senkung der EEG-Umlage.",
+    "fundstellen": [
+     {
+      "titel": "CO2-Emissionen: Preise und Kosten",
+      "url": "https://www.bundestag.de/resource/blob/1021378/4edf15c87b75d74c51eb672f10703fcb/WD-5-104-24-pdf.pdf"
+     },
+     {
+      "titel": "BEHG § 10 – Veräußerung von Emissionszertifikaten",
+      "url": "https://www.gesetze-im-internet.de/behg/__10.html"
+     },
+     {
+      "titel": "Antwort der Bundesregierung",
+      "url": "https://dserver.bundestag.de/btd/19/260/1926035.pdf"
+     },
+     {
+      "titel": "CO2-Steuer 2022: Abgaben für Benzin, Diesel, Heizöl & Erdgas",
+      "url": "https://www.handelsblatt.com/finanzen/steuern-recht/steuern/co2-preis-was-die-co2-steuer-fuer-verbraucher-bedeutet/26228322.html"
+     },
+     {
+      "titel": "BEHG-Änderung: CO2-Preis soll 2027 stabil bleiben - Deutscher Bundestag",
+      "url": "https://www.bundestag.de/presse/hib/kurzmeldungen-1210950"
+     },
+     {
+      "titel": "Deutscher Bundestag Drucksache 20/4096 20. Wahlperiode 19.10.2022",
+      "url": "https://dserver.bundestag.de/btd/20/040/2004096.pdf"
+     },
+     {
+      "titel": "Antwort der Bundesregierung auf die Kleine Anfrage der Fraktion der CDU/CSU",
+      "url": "https://dserver.bundestag.de/btd/20/084/2008474.pdf"
+     },
+     {
+      "titel": "Informationen zu ausgewählten Maßnahmen der Bundesregierung und deren Wirksamkeit auf die Verbraucherpreisindizes - Statistisches Bundesamt",
+      "url": "https://www.destatis.de/DE/Themen/Wirtschaft/Preise/Verbraucherpreisindex/aktuell-energie.html?templateQueryString=entlastungspaket&templateQueryString=entlastungspaket"
+     },
+     {
+      "titel": "Deutscher Bundestag Drucksache 20/13100",
+      "url": "https://dserver.bundestag.de/btd/20/131/2013100.pdf"
+     },
+     {
+      "titel": "Deutscher Bundestag WD 5 - 3000 - 105/24 Wissenschaftliche Dienste",
+      "url": "https://www.bundestag.de/resource/blob/1025892/9e8726d3d401071e1f1c70267f040bf3/WD-5-105-24-pdf.pdf"
+     },
+     {
+      "titel": "CO2-Emissionen: Preise und Kosten",
+      "url": "https://www.bundestag.de/resource/blob/1021378/4edf15c87b75d74c51eb672f10703fcb/WD-5-104-24-pdf.pdf"
+     },
+     {
+      "titel": "BEHG § 10 – Veräußerung von Emissionszertifikaten",
+      "url": "https://www.gesetze-im-internet.de/behg/__10.html"
+     },
+     {
+      "titel": "Antwort der Bundesregierung",
+      "url": "https://dserver.bundestag.de/btd/19/260/1926035.pdf"
+     },
+     {
+      "titel": "CO2-Steuer 2022: Abgaben für Benzin, Diesel, Heizöl & Erdgas",
+      "url": "https://www.handelsblatt.com/finanzen/steuern-recht/steuern/co2-preis-was-die-co2-steuer-fuer-verbraucher-bedeutet/26228322.html"
+     },
+     {
+      "titel": "BEHG-Änderung: CO2-Preis soll 2027 stabil bleiben - Deutscher Bundestag",
+      "url": "https://www.bundestag.de/presse/hib/kurzmeldungen-1210950"
+     },
+     {
+      "titel": "Deutscher Bundestag Drucksache 20/4096 20. Wahlperiode 19.10.2022",
+      "url": "https://dserver.bundestag.de/btd/20/040/2004096.pdf"
+     },
+     {
+      "titel": "Antwort der Bundesregierung auf die Kleine Anfrage der Fraktion der CDU/CSU",
+      "url": "https://dserver.bundestag.de/btd/20/084/2008474.pdf"
+     },
+     {
+      "titel": "Informationen zu ausgewählten Maßnahmen der Bundesregierung und deren Wirksamkeit auf die Verbraucherpreisindizes - Statistisches Bundesamt",
+      "url": "https://www.destatis.de/DE/Themen/Wirtschaft/Preise/Verbraucherpreisindex/aktuell-energie.html?templateQueryString=entlastungspaket&templateQueryString=entlastungspaket"
+     },
+     {
+      "titel": "Deutscher Bundestag Drucksache 20/13100",
+      "url": "https://dserver.bundestag.de/btd/20/131/2013100.pdf"
+     },
+     {
+      "titel": "Deutscher Bundestag WD 5 - 3000 - 105/24 Wissenschaftliche Dienste",
+      "url": "https://www.bundestag.de/resource/blob/1025892/9e8726d3d401071e1f1c70267f040bf3/WD-5-105-24-pdf.pdf"
+     },
+     {
+      "titel": "BEHG § 10 – Veräußerung von Emissionszertifikaten",
+      "url": "https://www.gesetze-im-internet.de/behg/__10.html"
+     },
+     {
+      "titel": "Deutscher Bundestag Drucksache 20/47 20. Wahlperiode 05.11.2021 Unterrichtung",
+      "url": "https://dserver.bundestag.de/btd/20/000/2000047.pdf"
+     },
+     {
+      "titel": "Deutscher Bundestag Drucksache 19/19929 19. Wahlperiode 15.06.2020",
+      "url": "https://dserver.bundestag.de/btd/19/199/1919929.pdf"
+     },
+     {
+      "titel": "Antwort der Bundesregierung auf die Kleine Anfrage der Fraktion der CDU/CSU",
+      "url": "https://dserver.bundestag.de/btd/20/084/2008474.pdf"
+     },
+     {
+      "titel": "BECV - Verordnung über Maßnahmen zur Vermeidung von Carbon-Leakage durch den nationalen Brennstoffemissionshandel",
+      "url": "https://www.gesetze-im-internet.de/becv/BJNR312900021.html"
+     },
+     {
+      "titel": "§ 8 BECV - Einzelnorm",
+      "url": "https://www.gesetze-im-internet.de/becv/__8.html"
+     },
+     {
+      "titel": "Deutscher Bundestag WD 8 - 3000 - 001/23 Wissenschaftliche Dienste",
+      "url": "https://www.bundestag.de/resource/blob/935752/WD-8-001-23-pdf.pdf"
+     },
+     {
+      "titel": "Deutscher Bundestag Drucksache 20/13100",
+      "url": "https://dserver.bundestag.de/btd/20/131/2013100.pdf"
+     },
+     {
+      "titel": "Gesetze im Internet - Gesetze / Verordnungen - Teilliste",
+      "url": "https://www.gesetze-im-internet.de/Teilliste_B.html"
+     },
+     {
+      "titel": "BEHG - Gesetz über einen nationalen Zertifikatehandel für Brennstoffemissionen",
+      "url": "https://www.gesetze-im-internet.de/behg/BJNR272800019.html"
+     }
+    ]
+   },
+   "slides": {
+    "skip": false,
+    "titel": "CO2-Preis stieg auf 55 Euro: AfD will ihn ganz abschaffen",
+    "hook": "Fällt die Abgabe, könnten auch Entlastungen wie bei der EEG-Umlage wegfallen",
+    "cover_frage": "Was ist die CO2-Bepreisung?",
+    "chart": {
+     "titel": "CO2-Preis pro Tonne seit 2021",
+     "einheit": "Euro",
+     "balken": [
+      {
+       "label": "2021",
+       "wert": 25
+      },
+      {
+       "label": "2022/2023",
+       "wert": 30
+      },
+      {
+       "label": "2024",
+       "wert": 45
+      },
+      {
+       "label": "2025",
+       "wert": 55
+      }
+     ],
+     "hervorheben": 3,
+     "hinweis": ""
+    },
+    "context": [
+     "Wer Benzin, Heizöl, Erdgas oder Kohle verkauft, muss dafür CO2-Zertifikate kaufen. Der Preis dafür wird an Kundinnen und Kunden weitergegeben, etwa an der Tankstelle.",
+     "Die AfD-Fraktion fordert in einem Antrag, alle Gesetze mit Klimaschutz-Bezug aufzuheben, darunter das Treibhausgas-Emissionshandelsgesetz und das Brennstoffhandelsgesetz.",
+     "Auch das Pariser Klimaabkommen soll gekündigt werden, ebenso Regeln aus dem EU Green Deal. Kernkraft soll wieder genutzt werden können.",
+     "Der Umweltausschuss hat dazu eine Beschlussempfehlung vorgelegt, über die der Bundestag am 24. September 2026 abstimmt."
+    ],
+    "begriff": {
+     "titel": "Was ist die CO2-Bepreisung",
+     "saetze": [
+      "Wer fossile Brennstoffe verkauft, muss für das ausgestoßene CO2 ein Zertifikat kaufen.",
+      "Diesen Preis geben Firmen an der Zapfsäule oder in der Heizkostenrechnung weiter."
+     ],
+     "beispiel": "2025 kostet eine Tonne CO2 55 Euro, das sind 30 Euro mehr als beim Start 2021 mit 25 Euro.",
+     "warum": [
+      "Befürworter sehen darin einen Anreiz zum Energiesparen und Umstieg auf klimafreundliche Alternativen.",
+      "Gegner argumentieren, die Abgabe verteuere Sprit und Heizen zusätzlich zur ohnehin hohen Energiekrise."
+     ]
+    },
+    "sowhat": {
+     "art": "erklärung",
+     "text": "Der Antrag ist noch nicht beschlossen, sondern wird nur beraten. Setzt sich die AfD durch, würde die CO2-Abgabe komplett wegfallen, wodurch Sprit und Heizöl günstiger würden. Gleichzeitig entfielen aber Entlastungen, die aus den Einnahmen finanziert werden, etwa bei der EEG-Umlage."
+    },
+    "folgen": {
+     "muster": "4c",
+     "payoff": "Nichts.",
+     "erklaerung": "Der Antrag wird nur beraten, an der CO2-Abgabe ändert sich bisher nichts.",
+     "schritte": []
+    },
+    "beispielwerte": [],
+    "abgeleitete_zahlen": [
+     {
+      "wert": 30,
+      "aus": [
+       55,
+       25
+      ],
+      "rechnung": "differenz"
+     }
+    ],
+    "fakten_evidence": "Der Bundestag befasst sich am Donnerstag, 24. September 2026, mit der Forderung der AfD-Fraktion nach Beendigung aller deutschen Klimaschutzmaßnahmen . Auch das Treibhausgas-Emissionshandelsgesetz (TEHG) und das Brennstoffhandelsgesetz (BEHG) sowie alle durch TEHG und BEHG ermächtigten Verordnungen sollen nach dem Willen der Fraktion aufgehoben werden, um die europäische und nationale CO2 -Bepreisung zu beenden und \"Wirtschaft und Bürger nachhaltig zu entlasten\", wie es im Antrag heißt. Der Ausschuss für Umwelt, Klimaschutz, Naturschutz und nukleare Sicherheit legt dazu eine Beschlussempfehlung vor."
+   }
+  },
+  {
+   "item": {
+    "id": "a60b63486e1eeb93",
+    "source": "Bundestag, Tagesordnung Plenarsitzung",
+    "weight": 3,
+    "tier": "kern",
+    "title": "Automatische Anpassung des Steuerrechts an die kalte Progression",
+    "text": "Der Bundestag berät am Mittwoch, 23. September 2026 , erstmals über den Gesetzentwurf der AfD-Fraktion „zur Einführung des Tarifs auf Rädern zur automatischen Anpassung des Steuerrechts an die kalte Progression “ ( 21/8065 (Dokument, öffnet ein neues Fenster) ). Nach 20-minütiger Aussprache soll der Entwurf dem Finanzausschuss zur federführenden Beratung überwiesen werden. Gesetzentwurf der AfD Als kalte Progression werden Steuermehreinnahmen bezeichnet, die entstehen, wenn Einkommenserhöhungen die Inflation ausgleichen. In solchen Fällen bleiben die Realeinkommen unverändert, aber es kommt infolge des progressiven Einkommensteuertarifs trotzdem zu einem Anstieg der Steuerbelastung. Nach Angaben der AfD-Fraktion gibt es keinen Automatismus zur Anpassung von Steuertarif, Freibeträgen, Freigrenzen, Pausch- und Höchstbeträgen im Einkommensteuergesetz, um die Folgen der kalten Progression auszugleichen. Anpassungen im Steuerrecht seien bisher auf Grundlage der zweijährigen sogenannten Progressionsberichte zur Änderung des Grundfreibetrags und der Tarifeckwerte erfolgt. Die vergangenen Entlastungen hätten nicht immer ausgereicht, um alle von der Inflation betroffenen Steuerzahler von den Folgen kalten Progression zu entlasten. Außerdem kritisiert die AfD-Fraktion: „Die weiteren Anpassungen von Freibeträgen, Freigrenzen, Pausch- und Höchstbeträgen passieren praktisch willkürlich und oftmals ohne erkennbaren Bezug zur Inflation.“ So sei der Werbungskostenpauschbetrag bei den sonstigen Einkünften wie Renten in Höhe von 102 Euro seit 1955 nicht mehr angepasst worden. Automatische Anpassung an die Inflation Als Lösung stellt sich die AfD-Fraktion einen Automatismus für die notwendigen jährlichen Anpassungen der Tarifeckwerte, Freibeträge, Freigrenzen, Pausch- und Höchstbeträge im Einkommensteuergesetz an die Inflation vor. Mit einer normierten Tarifformel sollen die Tarifeckwerte des Einkommensteuergesetzes jährlich automatisch an die Inflation angepasst werden. Zusätzlich soll eine jährliche automatische Anpassung aller Freigrenzen, Freibeträge, Pausch- und Höchstbeträge an die Inflation erfolgen. Die Steuermindereinnahmen aufgrund der automatischen Anpassungen würden den Bundeshaushalt nicht zusätzlich belasten, da es sich hierbei lediglich um das Rückführen von durch den Effekt der kalten Progression entstandene Steuermehreinnahmen handele, heißt es in dem Gesetzentwurf. (hle/hau/21.09.2026)",
+    "url": "https://www.bundestag.de/dokumente/textarchiv/2026/kw39-de-steuerrecht-1211284",
+    "date": "2026-09-23"
+   },
+   "recherche": {
+    "erklaerung": "Kalte Progression bedeutet: Steigt das Einkommen nur, um die Inflation auszugleichen, bleibt real nichts mehr übrig – aber durch den progressiven Steuertarif zahlt man trotzdem mehr Steuern. Bisher passt der Gesetzgeber Freibeträge und Tarifgrenzen nur alle zwei Jahre per eigenem Gesetz an, ohne festen Automatismus.",
+    "vorher_nachher": [
+     {
+      "label": "Grundfreibetrag 2023",
+      "wert": 10908.0,
+      "einheit": "Euro",
+      "quelle_url": "https://www.bundesfinanzministerium.de/Monatsberichte/2023/01/Inhalte/Kapitel-3-Analysen/3-1-steuerliche-aenderungen-2023.html"
+     },
+     {
+      "label": "Grundfreibetrag 2024",
+      "wert": 11784.0,
+      "einheit": "Euro",
+      "quelle_url": "https://www.bundestag.de/presse/hib/kurzmeldungen-1024772"
+     },
+     {
+      "label": "Grundfreibetrag 2025",
+      "wert": 12096.0,
+      "einheit": "Euro",
+      "quelle_url": "https://www.bundesfinanzministerium.de/Content/DE/Standardartikel/Themen/Steuern/das-aendert-sich-2025.html"
+     }
+    ],
+    "kaufkraft": {
+     "betrag": 102.0,
+     "jahr": 1955,
+     "jahre": 71,
+     "heute_etwa": 420.0,
+     "einheit": "Euro",
+     "annahme": "2 % Inflation pro Jahr"
+    },
+    "betroffene": "Alle Einkommensteuerzahler, insbesondere Arbeitnehmer und Rentner, deren Löhne oder Renten mit der Inflation steigen.",
+    "alltagswirkung": "Ohne automatische Anpassung müssen Freibeträge und Steuertarife jedes Mal einzeln vom Bundestag beschlossen werden – geschieht das nicht rechtzeitig oder nicht ausreichend, zahlen Bürger trotz gleichbleibendem Realeinkommen mehr Steuern.",
+    "fundstellen": [
+     {
+      "titel": "Deutscher Bundestag - Grundfreibetrag 2024 soll um 180 Euro steigen",
+      "url": "https://www.bundestag.de/presse/hib/kurzmeldungen-1017072"
+     },
+     {
+      "titel": "Die wichtigsten steuerlichen Änderungen 2025 - Bundesfinanzministerium - Themen",
+      "url": "https://www.bundesfinanzministerium.de/Content/DE/Standardartikel/Themen/Steuern/das-aendert-sich-2025.html"
+     },
+     {
+      "titel": "Deutscher Bundestag - Höhere Steuerfreibeträge beschlossen",
+      "url": "https://www.bundestag.de/presse/hib/kurzmeldungen-1024772"
+     },
+     {
+      "titel": "Steuerfreibetrag: Diese Steuerfreibeträge gelten 2023 und 2024",
+      "url": "https://www.handelsblatt.com/finanzen/steuern-recht/steuern/steuererklaerung-diese-steuerfreibetraege-gelten-2023-und-2024/28953830.html"
+     },
+     {
+      "titel": "Die wichtigsten steuerlichen Änderungen 2023 - Bundesfinanzministerium - BMF-Monatsbericht Januar 2023",
+      "url": "https://www.bundesfinanzministerium.de/Monatsberichte/2023/01/Inhalte/Kapitel-3-Analysen/3-1-steuerliche-aenderungen-2023.html"
+     },
+     {
+      "titel": "Steuerfreies Existenzminimum und Steuerfortentwicklungsgesetz beraten - Deutscher Bundestag",
+      "url": "https://www.bundestag.de/dokumente/textarchiv/2024/kw39-de-existenzminimum-1017664"
+     },
+     {
+      "titel": "Deutscher Bundestag - Parlament berät Antrag zum Grundfreibetrag bei der Einkommensteuer",
+      "url": "https://www.bundestag.de/dokumente/textarchiv/2024/kw15-de-lohnabstandsgebot-997408"
+     },
+     {
+      "titel": "Die wichtigsten steuerlichen Änderungen 2025 - Bundesfinanzministerium - BMF-Monatsbericht Januar 2025",
+      "url": "https://www.bundesfinanzministerium.de/Monatsberichte/Ausgabe/2025/01/Inhalte/Kapitel-2-Fokus/die-wichtigsten-steuerlichen-aenderungen-2025.html"
+     },
+     {
+      "titel": "Bundesregierung bringt Maßnahmen auf den Weg um inflationsbedingte Mehrbelastungen zu vermeiden und Investitionsbedingungen zu verbessern. Die Lohnsteuerbelastung wird gerechter verteilt - Bundesfinanzministerium - Presse",
+      "url": "https://www.bundesfinanzministerium.de/Content/DE/Pressemitteilungen/Finanzpolitik/2024/07/2024-07-24-gesetz-zur-steuerfortentwicklung.html"
+     },
+     {
+      "titel": "Die wichtigsten steuerlichen Änderungen 2024 - Bundesfinanzministerium - BMF-Monatsbericht Januar 2024",
+      "url": "https://www.bundesfinanzministerium.de/Monatsberichte/Ausgabe/2024/01/Inhalte/Kapitel-3-Analysen/3-1-wichtigste-steuerliche-aenderungen-2024.html"
+     }
+    ]
+   },
+   "slides": {
+    "skip": false,
+    "titel": "Kalte Progression: 102-Euro-Pauschale gilt seit 1955",
+    "hook": "Steigt dein Lohn nur mit der Inflation, zahlst du mehr Steuer",
+    "cover_frage": "Was ist kalte Progression?",
+    "chart": {
+     "titel": "Werbungskostenpauschale: 1955 vs heute",
+     "einheit": "Euro",
+     "balken": [
+      {
+       "label": "1955",
+       "wert": 102
+      },
+      {
+       "label": "heute",
+       "wert": 102
+      },
+      {
+       "label": "1955 in heutiger Kaufkraft",
+       "wert": 420
+      }
+     ],
+     "hervorheben": 2,
+     "hinweis": "Kaufkraft, Annahme: 2 % Inflation pro Jahr"
+    },
+    "context": [
+     "Kalte Progression heißt: Löhne oder Renten steigen nur mit der Inflation, real bleibt nichts übrig. Trotzdem steigt die Steuerlast, weil der Tarif progressiv ist.",
+     "Bisher passt der Bundestag Freibeträge und Tarifeckwerte nur alle zwei Jahre per eigenem Gesetz an, auf Basis der sogenannten Progressionsberichte. Einen festen Automatismus gibt es nicht.",
+     "Die AfD-Fraktion hat einen Gesetzentwurf eingebracht, der eine jährliche automatische Anpassung von Tarif, Freibeträgen und Pauschbeträgen an die Inflation vorschlägt.",
+     "Als Beispiel nennt sie den Werbungskosten-Pauschbetrag bei Renten und sonstigen Einkünften von 102 Euro, der seit 1955 unverändert ist. Der Entwurf geht nun in den Finanzausschuss."
+    ],
+    "begriff": {
+     "titel": "Was ist kalte Progression",
+     "saetze": [
+      "Wenn dein Lohn nur um die Inflation steigt, hast du real nicht mehr Geld.",
+      "Weil der Steuertarif progressiv ist, zahlst du auf das höhere Einkommen trotzdem mehr Steuern."
+     ],
+     "beispiel": "Bei 3.000 Euro Lohn und 3 % Inflationsausgleich bleiben real 0 Euro, die Steuer steigt trotzdem.",
+     "warum": [
+      "Kritiker sagen, ein Automatismus schränkt den jährlichen Handlungsspielraum des Bundestags beim Steuerrecht ein.",
+      "Befürworter sagen, ohne Automatismus werden Anpassungen oft verspätet oder unzureichend beschlossen."
+     ]
+    },
+    "sowhat": {
+     "art": "erklärung",
+     "text": "Der Entwurf ist eine erste Lesung, noch keine beschlossene Regel. Er geht jetzt zur Beratung in den Finanzausschuss. Käme ein Automatismus, würden Freibeträge und Steuertarif künftig jährlich automatisch an die Inflation angepasst, statt wie bisher nur alle zwei Jahre per eigenem Gesetzesbeschluss."
+    },
+    "folgen": {
+     "muster": "4c",
+     "payoff": "Nichts",
+     "erklaerung": "Würde der Automatismus beschlossen, passt das Finanzamt Freibeträge und Tarif automatisch an, du musst nichts beantragen.",
+     "schritte": []
+    },
+    "beispielwerte": [
+     3000,
+     3,
+     0
+    ],
+    "abgeleitete_zahlen": [
+     {
+      "wert": 70,
+      "aus": [
+       1955,
+       2026
+      ],
+      "rechnung": "differenz"
+     }
+    ],
+    "fakten_evidence": "Der Bundestag berät am Mittwoch, 23. September 2026 , erstmals über den Gesetzentwurf der AfD-Fraktion „zur Einführung des Tarifs auf Rädern zur automatischen Anpassung des Steuerrechts an die kalte Progression “ ( 21/8065 (Dokument, öffnet ein neues Fenster) ). Nach 20-minütiger Aussprache soll der Entwurf dem Finanzausschuss zur federführenden Beratung überwiesen werden. So sei der Werbungskostenpauschbetrag bei den sonstigen Einkünften wie Renten in Höhe von 102 Euro seit 1955 nicht mehr angepasst worden. Nach Angaben der AfD-Fraktion gibt es keinen Automatismus zur Anpassung von Steuertarif, Freibeträgen, Freigrenzen, Pausch- und Höchstbeträgen im Einkommensteuergesetz, um die Folgen der kalten Progression auszugleichen."
+   }
+  }
+ ]
+}

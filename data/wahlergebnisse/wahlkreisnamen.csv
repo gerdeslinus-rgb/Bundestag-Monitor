@@ -1,0 +1,307 @@
+# (c) Der Bundeswahlleiterin, Wiesbaden 2024;;;;
+# Datenlizenz Deutschland – Namensnennung – Version 2.0 (https://www.govdata.de/dl-de/by-2-0);;;;
+# ;;;;
+# Stand: 07.03.2024;;;;
+# ;;;;
+# Wahlkreisnummern und -namen bei der Wahl zum 21. Deutschen Bundestag;;;;
+# ;;;;
+WKR_NR;WKR_NAME;LAND_NR;LAND_NAME;LAND_ABK
+001;Flensburg – Schleswig;01;Schleswig-Holstein;SH
+002;Nordfriesland – Dithmarschen Nord;01;Schleswig-Holstein;SH
+003;Steinburg – Dithmarschen Süd;01;Schleswig-Holstein;SH
+004;Rendsburg-Eckernförde;01;Schleswig-Holstein;SH
+005;Kiel;01;Schleswig-Holstein;SH
+006;Plön – Neumünster;01;Schleswig-Holstein;SH
+007;Pinneberg;01;Schleswig-Holstein;SH
+008;Segeberg – Stormarn-Mitte;01;Schleswig-Holstein;SH
+009;Ostholstein – Stormarn-Nord;01;Schleswig-Holstein;SH
+010;Herzogtum Lauenburg – Stormarn-Süd;01;Schleswig-Holstein;SH
+011;Lübeck;01;Schleswig-Holstein;SH
+012;Schwerin – Ludwigslust-Parchim I – Nordwestmecklenburg I;13;Mecklenburg-Vorpommern;MV
+013;Ludwigslust-Parchim II – Nordwestmecklenburg II – Landkreis Rostock I;13;Mecklenburg-Vorpommern;MV
+014;Rostock – Landkreis Rostock II;13;Mecklenburg-Vorpommern;MV
+015;Vorpommern-Rügen – Vorpommern-Greifswald I;13;Mecklenburg-Vorpommern;MV
+016;Mecklenburgische Seenplatte I – Vorpommern-Greifswald II ;13;Mecklenburg-Vorpommern;MV
+017;Mecklenburgische Seenplatte II – Landkreis Rostock III;13;Mecklenburg-Vorpommern;MV
+018;Hamburg-Mitte;02;Hamburg;HH
+019;Hamburg-Altona;02;Hamburg;HH
+020;Hamburg-Eimsbüttel;02;Hamburg;HH
+021;Hamburg-Nord;02;Hamburg;HH
+022;Hamburg-Wandsbek;02;Hamburg;HH
+023;Hamburg-Bergedorf – Harburg;02;Hamburg;HH
+024;Aurich – Emden;03;Niedersachsen;NI
+025;Unterems;03;Niedersachsen;NI
+026;Friesland – Wilhelmshaven – Wittmund;03;Niedersachsen;NI
+027;Oldenburg – Ammerland;03;Niedersachsen;NI
+028;Delmenhorst – Wesermarsch – Oldenburg-Land;03;Niedersachsen;NI
+029;Cuxhaven – Stade II;03;Niedersachsen;NI
+030;Stade I – Rotenburg II;03;Niedersachsen;NI
+031;Mittelems;03;Niedersachsen;NI
+032;Cloppenburg – Vechta;03;Niedersachsen;NI
+033;Diepholz – Nienburg I;03;Niedersachsen;NI
+034;Osterholz – Verden;03;Niedersachsen;NI
+035;Rotenburg I – Heidekreis;03;Niedersachsen;NI
+036;Harburg;03;Niedersachsen;NI
+037;Lüchow-Dannenberg – Lüneburg;03;Niedersachsen;NI
+038;Osnabrück-Land;03;Niedersachsen;NI
+039;Stadt Osnabrück;03;Niedersachsen;NI
+040;Nienburg II – Schaumburg;03;Niedersachsen;NI
+041;Stadt Hannover I;03;Niedersachsen;NI
+042;Stadt Hannover II;03;Niedersachsen;NI
+043;Hannover-Land I;03;Niedersachsen;NI
+044;Celle – Uelzen;03;Niedersachsen;NI
+045;Gifhorn – Peine;03;Niedersachsen;NI
+046;Hameln-Pyrmont – Holzminden;03;Niedersachsen;NI
+047;Hannover-Land II;03;Niedersachsen;NI
+048;Hildesheim;03;Niedersachsen;NI
+049;Salzgitter – Wolfenbüttel;03;Niedersachsen;NI
+050;Braunschweig;03;Niedersachsen;NI
+051;Helmstedt – Wolfsburg;03;Niedersachsen;NI
+052;Goslar – Northeim – Göttingen II;03;Niedersachsen;NI
+053;Göttingen I;03;Niedersachsen;NI
+054;Bremen I;04;Bremen;HB
+055;Bremen II – Bremerhaven;04;Bremen;HB
+056;Prignitz – Ostprignitz-Ruppin – Havelland I;12;Brandenburg;BB
+057;Uckermark – Barnim I;12;Brandenburg;BB
+058;Oberhavel – Havelland II;12;Brandenburg;BB
+059;Märkisch-Oderland – Barnim II;12;Brandenburg;BB
+060;Brandenburg an der Havel – Potsdam-Mittelmark I – Havelland III – Teltow-Fläming I;12;Brandenburg;BB
+061;Potsdam – Potsdam-Mittelmark II – Teltow-Fläming II;12;Brandenburg;BB
+062;Dahme-Spreewald – Teltow-Fläming III;12;Brandenburg;BB
+063;Frankfurt (Oder) – Oder-Spree;12;Brandenburg;BB
+064;Cottbus – Spree-Neiße;12;Brandenburg;BB
+065;Elbe-Elster – Oberspreewald-Lausitz;12;Brandenburg;BB
+066;Altmark – Jerichower Land;15;Sachsen-Anhalt;ST
+067;Börde – Salzlandkreis;15;Sachsen-Anhalt;ST
+068;Harz;15;Sachsen-Anhalt;ST
+069;Magdeburg;15;Sachsen-Anhalt;ST
+070;Anhalt – Dessau – Wittenberg;15;Sachsen-Anhalt;ST
+071;Halle;15;Sachsen-Anhalt;ST
+072;Burgenland – Saalekreis;15;Sachsen-Anhalt;ST
+073;Mansfeld;15;Sachsen-Anhalt;ST
+074;Berlin-Mitte;11;Berlin;BE
+075;Berlin-Pankow;11;Berlin;BE
+076;Berlin-Reinickendorf;11;Berlin;BE
+077;Berlin-Spandau – Charlottenburg Nord;11;Berlin;BE
+078;Berlin-Steglitz-Zehlendorf;11;Berlin;BE
+079;Berlin-Charlottenburg-Wilmersdorf;11;Berlin;BE
+080;Berlin-Tempelhof-Schöneberg;11;Berlin;BE
+081;Berlin-Neukölln;11;Berlin;BE
+082;Berlin-Friedrichshain-Kreuzberg – Prenzlauer Berg Ost;11;Berlin;BE
+083;Berlin-Treptow-Köpenick;11;Berlin;BE
+084;Berlin-Marzahn-Hellersdorf;11;Berlin;BE
+085;Berlin-Lichtenberg;11;Berlin;BE
+086;Aachen I;05;Nordrhein-Westfalen;NW
+087;Aachen II;05;Nordrhein-Westfalen;NW
+088;Heinsberg;05;Nordrhein-Westfalen;NW
+089;Düren;05;Nordrhein-Westfalen;NW
+090;Rhein-Erft-Kreis I;05;Nordrhein-Westfalen;NW
+091;Euskirchen – Rhein-Erft-Kreis II;05;Nordrhein-Westfalen;NW
+092;Köln I;05;Nordrhein-Westfalen;NW
+093;Köln II;05;Nordrhein-Westfalen;NW
+094;Köln III;05;Nordrhein-Westfalen;NW
+095;Bonn;05;Nordrhein-Westfalen;NW
+096;Rhein-Sieg-Kreis I;05;Nordrhein-Westfalen;NW
+097;Rhein-Sieg-Kreis II;05;Nordrhein-Westfalen;NW
+098;Oberbergischer Kreis;05;Nordrhein-Westfalen;NW
+099;Rheinisch-Bergischer Kreis;05;Nordrhein-Westfalen;NW
+100;Leverkusen – Köln IV;05;Nordrhein-Westfalen;NW
+101;Wuppertal I;05;Nordrhein-Westfalen;NW
+102;Solingen – Remscheid – Wuppertal II;05;Nordrhein-Westfalen;NW
+103;Mettmann I;05;Nordrhein-Westfalen;NW
+104;Mettmann II;05;Nordrhein-Westfalen;NW
+105;Düsseldorf I;05;Nordrhein-Westfalen;NW
+106;Düsseldorf II;05;Nordrhein-Westfalen;NW
+107;Neuss I;05;Nordrhein-Westfalen;NW
+108;Mönchengladbach;05;Nordrhein-Westfalen;NW
+109;Krefeld I – Neuss II;05;Nordrhein-Westfalen;NW
+110;Viersen;05;Nordrhein-Westfalen;NW
+111;Kleve;05;Nordrhein-Westfalen;NW
+112;Wesel I;05;Nordrhein-Westfalen;NW
+113;Krefeld II – Wesel II;05;Nordrhein-Westfalen;NW
+114;Duisburg I;05;Nordrhein-Westfalen;NW
+115;Duisburg II;05;Nordrhein-Westfalen;NW
+116;Oberhausen – Wesel III;05;Nordrhein-Westfalen;NW
+117;Mülheim – Essen I;05;Nordrhein-Westfalen;NW
+118;Essen II;05;Nordrhein-Westfalen;NW
+119;Essen III;05;Nordrhein-Westfalen;NW
+120;Recklinghausen I;05;Nordrhein-Westfalen;NW
+121;Recklinghausen II;05;Nordrhein-Westfalen;NW
+122;Gelsenkirchen;05;Nordrhein-Westfalen;NW
+123;Steinfurt I – Borken I;05;Nordrhein-Westfalen;NW
+124;Bottrop – Recklinghausen III;05;Nordrhein-Westfalen;NW
+125;Borken II;05;Nordrhein-Westfalen;NW
+126;Coesfeld – Steinfurt II;05;Nordrhein-Westfalen;NW
+127;Steinfurt III;05;Nordrhein-Westfalen;NW
+128;Münster;05;Nordrhein-Westfalen;NW
+129;Warendorf;05;Nordrhein-Westfalen;NW
+130;Gütersloh I;05;Nordrhein-Westfalen;NW
+131;Bielefeld – Gütersloh II;05;Nordrhein-Westfalen;NW
+132;Herford – Minden-Lübbecke II;05;Nordrhein-Westfalen;NW
+133;Minden-Lübbecke I;05;Nordrhein-Westfalen;NW
+134;Lippe I;05;Nordrhein-Westfalen;NW
+135;Höxter – Gütersloh III – Lippe II;05;Nordrhein-Westfalen;NW
+136;Paderborn;05;Nordrhein-Westfalen;NW
+137;Hagen – Ennepe-Ruhr-Kreis I;05;Nordrhein-Westfalen;NW
+138;Ennepe-Ruhr-Kreis II;05;Nordrhein-Westfalen;NW
+139;Bochum I;05;Nordrhein-Westfalen;NW
+140;Herne – Bochum II;05;Nordrhein-Westfalen;NW
+141;Dortmund I;05;Nordrhein-Westfalen;NW
+142;Dortmund II;05;Nordrhein-Westfalen;NW
+143;Unna I;05;Nordrhein-Westfalen;NW
+144;Hamm – Unna II;05;Nordrhein-Westfalen;NW
+145;Soest;05;Nordrhein-Westfalen;NW
+146;Hochsauerlandkreis;05;Nordrhein-Westfalen;NW
+147;Siegen-Wittgenstein;05;Nordrhein-Westfalen;NW
+148;Olpe – Märkischer Kreis I;05;Nordrhein-Westfalen;NW
+149;Märkischer Kreis II;05;Nordrhein-Westfalen;NW
+150;Nordsachsen;14;Sachsen;SN
+151;Leipzig I;14;Sachsen;SN
+152;Leipzig II;14;Sachsen;SN
+153;Leipzig-Land;14;Sachsen;SN
+154;Meißen;14;Sachsen;SN
+155;Bautzen I;14;Sachsen;SN
+156;Görlitz;14;Sachsen;SN
+157;Sächsische Schweiz-Osterzgebirge;14;Sachsen;SN
+158;Dresden I;14;Sachsen;SN
+159;Dresden II – Bautzen II;14;Sachsen;SN
+160;Mittelsachsen;14;Sachsen;SN
+161;Chemnitz;14;Sachsen;SN
+162;Chemnitzer Umland – Erzgebirgskreis II;14;Sachsen;SN
+163;Erzgebirgskreis I;14;Sachsen;SN
+164;Zwickau;14;Sachsen;SN
+165;Vogtlandkreis;14;Sachsen;SN
+166;Waldeck;06;Hessen;HE
+167;Kassel;06;Hessen;HE
+168;Werra-Meißner – Hersfeld-Rotenburg;06;Hessen;HE
+169;Schwalm-Eder;06;Hessen;HE
+170;Marburg;06;Hessen;HE
+171;Lahn-Dill;06;Hessen;HE
+172;Gießen;06;Hessen;HE
+173;Fulda;06;Hessen;HE
+174;Main-Kinzig – Wetterau II – Schotten;06;Hessen;HE
+175;Hochtaunus;06;Hessen;HE
+176;Wetterau I;06;Hessen;HE
+177;Rheingau-Taunus – Limburg;06;Hessen;HE
+178;Wiesbaden;06;Hessen;HE
+179;Hanau;06;Hessen;HE
+180;Main-Taunus;06;Hessen;HE
+181;Frankfurt am Main I;06;Hessen;HE
+182;Frankfurt am Main II;06;Hessen;HE
+183;Groß-Gerau;06;Hessen;HE
+184;Offenbach;06;Hessen;HE
+185;Darmstadt;06;Hessen;HE
+186;Odenwald;06;Hessen;HE
+187;Bergstraße;06;Hessen;HE
+188;Eichsfeld – Nordhausen – Kyffhäuserkreis;16;Thüringen;TH
+189;Eisenach – Wartburgkreis – Unstrut-Hainich-Kreis;16;Thüringen;TH
+190;Jena – Sömmerda – Weimarer Land I;16;Thüringen;TH
+191;Gotha – Ilm-Kreis;16;Thüringen;TH
+192;Erfurt – Weimar – Weimarer Land II;16;Thüringen;TH
+193;Gera – Greiz – Altenburger Land;16;Thüringen;TH
+194;Saalfeld-Rudolstadt – Saale-Holzland-Kreis – Saale-Orla-Kreis;16;Thüringen;TH
+195;Suhl – Schmalkalden-Meiningen – Hildburghausen – Sonneberg;16;Thüringen;TH
+196;Neuwied;07;Rheinland-Pfalz;RP
+197;Ahrweiler;07;Rheinland-Pfalz;RP
+198;Koblenz;07;Rheinland-Pfalz;RP
+199;Mosel/Rhein-Hunsrück;07;Rheinland-Pfalz;RP
+200;Kreuznach;07;Rheinland-Pfalz;RP
+201;Bitburg;07;Rheinland-Pfalz;RP
+202;Trier;07;Rheinland-Pfalz;RP
+203;Montabaur;07;Rheinland-Pfalz;RP
+204;Mainz;07;Rheinland-Pfalz;RP
+205;Worms;07;Rheinland-Pfalz;RP
+206;Ludwigshafen/Frankenthal;07;Rheinland-Pfalz;RP
+207;Neustadt – Speyer;07;Rheinland-Pfalz;RP
+208;Kaiserslautern;07;Rheinland-Pfalz;RP
+209;Pirmasens;07;Rheinland-Pfalz;RP
+210;Südpfalz;07;Rheinland-Pfalz;RP
+211;Altötting;09;Bayern;BY
+212;Erding – Ebersberg;09;Bayern;BY
+213;Freising;09;Bayern;BY
+214;Fürstenfeldbruck;09;Bayern;BY
+215;Ingolstadt;09;Bayern;BY
+216;München-Nord;09;Bayern;BY
+217;München-Ost;09;Bayern;BY
+218;München-Süd;09;Bayern;BY
+219;München-West/Mitte;09;Bayern;BY
+220;München-Land;09;Bayern;BY
+221;Rosenheim;09;Bayern;BY
+222;Bad Tölz-Wolfratshausen – Miesbach;09;Bayern;BY
+223;Starnberg – Landsberg am Lech;09;Bayern;BY
+224;Traunstein;09;Bayern;BY
+225;Weilheim;09;Bayern;BY
+226;Deggendorf;09;Bayern;BY
+227;Landshut;09;Bayern;BY
+228;Passau;09;Bayern;BY
+229;Rottal-Inn;09;Bayern;BY
+230;Straubing;09;Bayern;BY
+231;Amberg;09;Bayern;BY
+232;Regensburg;09;Bayern;BY
+233;Schwandorf;09;Bayern;BY
+234;Weiden;09;Bayern;BY
+235;Bamberg;09;Bayern;BY
+236;Bayreuth;09;Bayern;BY
+237;Coburg;09;Bayern;BY
+238;Hof;09;Bayern;BY
+239;Kulmbach;09;Bayern;BY
+240;Ansbach;09;Bayern;BY
+241;Erlangen;09;Bayern;BY
+242;Fürth;09;Bayern;BY
+243;Nürnberg-Nord;09;Bayern;BY
+244;Nürnberg-Süd;09;Bayern;BY
+245;Roth;09;Bayern;BY
+246;Aschaffenburg;09;Bayern;BY
+247;Bad Kissingen;09;Bayern;BY
+248;Main-Spessart;09;Bayern;BY
+249;Schweinfurt;09;Bayern;BY
+250;Würzburg;09;Bayern;BY
+251;Augsburg-Stadt;09;Bayern;BY
+252;Augsburg-Land;09;Bayern;BY
+253;Donau-Ries;09;Bayern;BY
+254;Neu-Ulm;09;Bayern;BY
+255;Memmingen – Unterallgäu;09;Bayern;BY
+256;Oberallgäu;09;Bayern;BY
+257;Ostallgäu;09;Bayern;BY
+258;Stuttgart I;08;Baden-Württemberg;BW
+259;Stuttgart II;08;Baden-Württemberg;BW
+260;Böblingen;08;Baden-Württemberg;BW
+261;Esslingen;08;Baden-Württemberg;BW
+262;Nürtingen;08;Baden-Württemberg;BW
+263;Göppingen;08;Baden-Württemberg;BW
+264;Waiblingen;08;Baden-Württemberg;BW
+265;Ludwigsburg;08;Baden-Württemberg;BW
+266;Neckar-Zaber;08;Baden-Württemberg;BW
+267;Heilbronn;08;Baden-Württemberg;BW
+268;Schwäbisch Hall – Hohenlohe;08;Baden-Württemberg;BW
+269;Backnang – Schwäbisch Gmünd;08;Baden-Württemberg;BW
+270;Aalen – Heidenheim;08;Baden-Württemberg;BW
+271;Karlsruhe-Stadt;08;Baden-Württemberg;BW
+272;Karlsruhe-Land;08;Baden-Württemberg;BW
+273;Rastatt;08;Baden-Württemberg;BW
+274;Heidelberg;08;Baden-Württemberg;BW
+275;Mannheim;08;Baden-Württemberg;BW
+276;Odenwald – Tauber;08;Baden-Württemberg;BW
+277;Rhein-Neckar;08;Baden-Württemberg;BW
+278;Bruchsal – Schwetzingen;08;Baden-Württemberg;BW
+279;Pforzheim;08;Baden-Württemberg;BW
+280;Calw;08;Baden-Württemberg;BW
+281;Freiburg;08;Baden-Württemberg;BW
+282;Lörrach – Müllheim;08;Baden-Württemberg;BW
+283;Emmendingen – Lahr;08;Baden-Württemberg;BW
+284;Offenburg;08;Baden-Württemberg;BW
+285;Rottweil – Tuttlingen;08;Baden-Württemberg;BW
+286;Schwarzwald-Baar;08;Baden-Württemberg;BW
+287;Konstanz;08;Baden-Württemberg;BW
+288;Waldshut;08;Baden-Württemberg;BW
+289;Reutlingen;08;Baden-Württemberg;BW
+290;Tübingen;08;Baden-Württemberg;BW
+291;Ulm;08;Baden-Württemberg;BW
+292;Biberach;08;Baden-Württemberg;BW
+293;Bodensee;08;Baden-Württemberg;BW
+294;Ravensburg;08;Baden-Württemberg;BW
+295;Zollernalb – Sigmaringen;08;Baden-Württemberg;BW
+296;Saarbrücken;10;Saarland;SL
+297;Saarlouis;10;Saarland;SL
+298;St. Wendel;10;Saarland;SL
+299;Homburg;10;Saarland;SL

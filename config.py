@@ -1,0 +1,492 @@
+"""Zentrale Konfiguration. Hier stellst du alles ein, ohne Code anzufassen."""
+
+# --- Ausgabe ---------------------------------------------------------------
+# Ein Karussell = Hook, Chart, Context, So what, Newsletter (5 Slides).
+# Pro Lauf werden CAROUSELS_PER_RUN Stueck gebaut und beide nach Telegram
+# geschickt - du postest eines, das zweite ist Reserve fuer den naechsten Slot.
+CAROUSELS_PER_RUN = 2
+# Ersatzthemen je Quelle, falls eines die Pruefung nicht besteht. Ohne
+# Reserve kostet ein einziger Durchfaller der Quelle ihren ganzen Slot: der
+# Lauf faellt dann auf eine schwaechere Quelle durch, obwohl noch brauchbare
+# Vorgaenge bereitliegen. Ein Ersatz wird NUR bei Ausfall bezahlt - nichts
+# kostet, was nicht gebraucht wird.
+THEMEN_RESERVE = 2
+MAX_ITEMS = 40             # Wie viele Kandidaten maximal ins Themen-Ranking gehen
+LOOKBACK_HOURS = 30        # Wie weit zurueck Quellen gelesen werden
+TIMEZONE = "Europe/Berlin"
+
+# --- Modelle ---------------------------------------------------------------
+# Billiges Modell sortiert vor, teures Modell schreibt nur die Finalisten.
+MODEL_RANK = "claude-haiku-4-5-20251001"
+MODEL_DRAFT = "claude-sonnet-5"
+MODEL_RESEARCH = "claude-sonnet-5"   # Recherche-Call mit Websuche
+MODEL_JUDGE = "claude-sonnet-5"      # Faktencheck der So-what-Slide
+
+# --- Verifikation ----------------------------------------------------------
+# Wie stark der Beleg-Satz mit dem Quelltext uebereinstimmen muss (0.0 - 1.0).
+# 0.82 faengt Halluzinationen, erlaubt aber Whitespace- und Umlaut-Abweichungen.
+EVIDENCE_THRESHOLD = 0.82
+
+# Gewertet wird die Summe aller woertlichen Uebereinstimmungen, aber nur
+# Bloecke ab dieser Laenge zaehlen mit. Der Wert ist die eigentliche Huerde:
+# ohne ihn summieren sich die Fuellwoerter einer freien Paraphrase auf 0.98,
+# bei 16 Zeichen bleibt dieselbe Paraphrase bei 0.22. Hoeher setzen macht die
+# Pruefung strenger, aber auch empfindlich gegen kurze Belegsaetze.
+EVIDENCE_MIN_BLOCK = 16
+
+# --- Volltext ----------------------------------------------------------
+# RSS-Teaser sind manchmal zu kurz fuer die Beleg-Pruefung in llm.py.
+# Unterhalb dieser Laenge wird der Artikeltext von der Original-Seite
+# nachgeladen (hoeflich, mit Timeout, Fehler stoppen den Lauf nicht).
+FULLTEXT_MIN_CHARS = 400
+FULLTEXT_MAX_CHARS = 24000
+
+# Fuer die AUSGEWAEHLTEN Themen gilt eine hoehere Huerde als beim Einsammeln.
+# Grund: die Beleg-Pruefung in llm.verify_slides() matcht den Beleg-Satz gegen
+# genau diesen Text. Ein Destatis-Teaser von 636 Zeichen liegt zwar ueber
+# FULLTEXT_MIN_CHARS, bricht aber mitten im Satz ab - das Modell schreibt dann
+# korrekt ueber die Meldung und faellt trotzdem durch, weil der Beleg im
+# Teaser gar nicht vorkommen kann. Nachgeladen wird erst nach der Auswahl,
+# also fuer 2 Themen statt fuer 136 - das kostet zwei Seitenaufrufe, keine
+# Verlangsamung des Einsammelns.
+VOLLTEXT_ZIEL_CHARS = 1500
+
+# Wie viel Quelltext Schreiber UND Faktenpruefer sehen. Bewusst EINE Zahl:
+# vorher bekam compose() 4000 Zeichen und judge_slides() nur 3000. Alles in
+# diesem Spalt konnte das Modell voellig korrekt verwenden, ohne dass der
+# Pruefer es je zu Gesicht bekam - er musste es fuer erfunden halten. Solange
+# beide dieselbe Konstante benutzen, kann diese Luecke nicht zurueckkehren.
+# 16000 statt frueher 4000, seit DIP-Ausschussberichte dazugekommen sind.
+# Gemessen an der Beschlussempfehlung zum antragslosen Kindergeld (21/6979,
+# 35.453 Zeichen): im 4000er-Fenster lagen 10 von rund 104 Zahlen des
+# Dokuments, und der Anfang ist Drucksachenkopf und "A. Problem". Das Modell
+# sollte also eine zahlengetriebene Grafik bauen und sah ein Neuntel des
+# Textes - kein Wunder, dass es zu einer erfundenen Zahl griff. Input-Tokens
+# sind der billigste Posten im Lauf; das Fenster zu verbreitern kostet
+# ungefaehr einen Cent je Aufruf.
+PRUEFTEXT_MAX_CHARS = 16000
+
+# Register werden schubweise veroeffentlicht, nicht taeglich: die Nebentaetig-
+# keiten bei abgeordnetenwatch kamen zuletzt am 08.-11.09., davor war sechs
+# Wochen nichts. Mit LOOKBACK_HOURS = 30 ist die Abfrage an den meisten Tagen
+# leer - und damit auch der Profil-Modus, der genau darauf aufbaut. Deshalb
+# fuer diese Quellen ein eigenes, deutlich groesseres Fenster.
+REGISTER_LOOKBACK_DAYS = 14
+
+# --- Quellen ---------------------------------------------------------------
+# gewicht: hoeher = wichtiger in der Vorsortierung (Vorfilter-Cap auf 40).
+# tier: geht in den Ranking-Prompt in llm.py, damit das Modell weiss, was
+#   ueberhaupt "wichtig genug fuer den Tagesueberblick" heissen soll:
+#   "kern"    - echte Entscheidungen/Beschluesse/Zahlen, fuer ein breites
+#               Publikum relevant (Gesetze, Urteile, Haushalt, Abstimmungen).
+#   "kontext" - amtlich und korrekt, aber eher Verwaltungs-/Compliance-Info
+#               (Lobbyregister-Eintrag, Ausschuss-Personalie, Nebeneinkuenfte).
+#               Soll nur zum Zug kommen, wenn an dem Tag sonst nichts Besseres
+#               da ist - sonst dominieren diese Quellen den Ueberblick rein
+#               nach Menge, ohne dass sie das eigentlich verdienen.
+# Pruefe jede URL einmal mit `python check_sources.py`, Feeds aendern sich.
+RSS_SOURCES = [
+    {"name": "Bundesregierung Aktuelles", "weight": 3, "tier": "kern",
+     "url": "https://www.bundesregierung.de/service/rss/breg-de/1151244/feed.xml"},
+    {"name": "Destatis Pressemitteilungen", "weight": 3, "tier": "kern",
+     "url": "https://www.destatis.de/SiteGlobals/Functions/RSSFeed/DE/RSSNewsfeed/Aktuell.xml"},
+    {"name": "Bundesbank", "weight": 2, "tier": "kern",
+     "url": "https://www.bundesbank.de/service/rss/de/633286/feed.rss"},
+]
+
+# Bundestag DIP API (Drucksachen, Vorgaenge, Plenarprotokolle)
+DIP_ENABLED = True
+DIP_BASE = "https://search.dip.bundestag.de/api/v1"
+
+# Gelesen wird der VORGANG, nicht die einzelne Drucksache. Der Vorgang traegt
+# ein redaktionelles "abstract", den Beratungsstand und das Sachgebiet - die
+# Drucksachen-Abfrage lieferte dagegen nur Titel, und als Quelltext stand dann
+# derselbe Titel noch einmal da. Damit konnte ein DIP-Item die Belegpruefung
+# in llm.verify_slides() gar nicht bestehen.
+DIP_VORGANGSTYP = "Gesetzgebung"
+
+# Quellen werden NICHT mehr alle auf einmal gelesen, sondern der Reihe nach.
+# Erst DIP; kommt daraus ein sendefertiges Karussell, ist Schluss. Sonst die
+# naechste Stufe. Zwei Gruende:
+#
+#  - Qualitaet. Vorher konkurrierten 23 Tagesordnungspunkte (Ankuendigungen
+#    kuenftiger Debatten) mit 10 beschlossenen Gesetzen um zwei Plaetze.
+#    Jetzt kommt das Schwaechere nur dran, wenn das Staerkere nichts hergibt.
+#  - Zeit. Gemessen am 16.09.2026, jeder Fetcher einzeln: fetch_dip braucht
+#    1,6 Sekunden, fetch_bundespuls 80, fetch_ausschuesse 65, fetch_tages-
+#    ordnung 53, fetch_lobbyregister 53. Alles zusammen kostete rund 60
+#    Sekunden pro Lauf - fuer Quellen, die an guten Tagen niemand braucht.
+#
+# "bauart" sagt, wer aus den Items ein Karussell macht: "llm" ist die
+# normale Strecke (Auswahl, Recherche, Entwurf, zwei Pruefungen), "profil"
+# der deterministische Weg aus profile_mode, der ohne Schreibmodell auskommt.
+QUELLEN_STUFEN = [
+    ("DIP Gesetzgebung", ["fetch_dip"],               "llm"),
+    ("Lobbyregister",    ["fetch_lobbyregister"],     "llm"),
+    ("Nebentaetigkeiten", ["fetch_nebentaetigkeiten"], "profil"),
+    ("Parteispenden",    ["fetch_parteispenden"],     "llm"),
+]
+
+# Serverseitig filtern spart das Aussortieren im Modell: in einer Woche waren
+# 433 von 800 Vorgaengen Schriftliche Fragen und 175 Kleine Anfragen - also
+# drei Viertel genau das, was SELECT_PROMPT als "ungeeignet" auflistet.
+
+# Nur entschiedene Vorgaenge. "Abgelehnt" gehoert dazu: dass der Bundestag
+# etwas NICHT beschlossen hat, ist genauso eine Nachricht wie das Gegenteil.
+DIP_BESCHLOSSEN = {
+    "Verkündet", "Verabschiedet", "Angenommen", "Abgelehnt", "Abgeschlossen",
+}
+
+# Quellen, deren Items eine bereits gefallene Entscheidung beschreiben.
+# Die Themenauswahl bekommt das ausdruecklich vorgelegt, statt es aus der
+# Quellenbezeichnung erraten zu muessen: ohne diesen Hinweis hat das Modell
+# zweimal hintereinander zwei Antraege gewaehlt, ueber die erst noch
+# abgestimmt wird - waehrend neun verabschiedete Gesetze danebenlagen.
+#
+# "Bundestag, Vorgang ..." ist sicher: fetch_dip() laesst nur Vorgaenge aus
+# DIP_BESCHLOSSEN durch. Eine namentliche Abstimmung hat stattgefunden, ein
+# Tagesordnungspunkt dagegen steht erst an.
+ENTSCHIEDEN_QUELLEN = (
+    "Bundestag, Vorgang ",
+    "namentliche Abstimmung",
+    "Bundespuls Abstimmungen",
+)
+
+# Gesetze werden in Sitzungswochen beschlossen, nicht gleichmaessig ueber den
+# Monat verteilt - ein 30-Stunden-Fenster waere an den meisten Tagen leer.
+# Dass dadurch aeltere Beschluesse mitkommen, ist unkritisch: seen.json sorgt
+# dafuer, dass jeder Vorgang nur einmal auftaucht.
+GESETZE_LOOKBACK_DAYS = 21
+
+# Wie stark der Ankuendigungssatz einer namentlichen Abstimmung mit dem Titel
+# des Vorgangs uebereinstimmen muss, damit sie zugeordnet wird. Lieber streng:
+# ein falsch zugeordnetes Abstimmungsergebnis behauptet das Gegenteil dessen,
+# was passiert ist. Im Zweifel zeigt das Karussell einfach keine Stimmen.
+ABSTIMMUNG_ENABLED = True
+ABSTIMMUNG_MIN_UEBERLAPPUNG = 0.6
+
+# Welche Drucksache eines Vorgangs den Quelltext liefert - in dieser
+# Reihenfolge. Nicht einfach "die neueste": ein Vorgang enthaelt auch
+# Aenderungsantraege einzelner Fraktionen, die gerade NICHT beschlossen
+# wurden. Einmal beobachtet: fuer das E-Scooter-Haftungsgesetz war die
+# letzte Drucksache ein abgelehnter Aenderungsantrag einer Fraktion - ein
+# Karussell daraus haette das Gegenteil des Beschlossenen behauptet.
+#
+#   Beschlussempfehlung und Bericht - was der Ausschuss geaendert hat und
+#       was am Ende angenommen wurde, mit Begruendung. Der beste Quelltext.
+#   Gesetzesbeschluss - der amtliche Wortlaut, aber oft nur wenige Zeilen.
+#   Gesetzentwurf - ausfuehrlich samt Begruendung, allerdings der Stand VOR
+#       den Ausschussaenderungen.
+DIP_DRUCKSACHE_REIHENFOLGE = [
+    "Beschlussempfehlung und Bericht",
+    "Beschlussempfehlung",
+    "Gesetzesbeschluss",
+    "Gesetzentwurf",
+]
+
+# Abgeordnetenwatch: namentliche Abstimmungen (kein Key noetig, CC0)
+AOW_ENABLED = True
+AOW_PARLIAMENT_ID = 5      # 5 = Bundestag
+
+# Bundespuls: Aggregator-Feeds (RSS, kein Key, CC0-Rohdaten via DIP/AOW).
+# Bewusst nur die drei Teil-Feeds, nicht zusaetzlich /feed (Master), sonst
+# gibt es dieselben Meldungen doppelt. Plenarprotokolle sind nur ein PDF-
+# Link ohne Volltext (siehe fetch_bundespuls-Kommentar) - tier "kontext".
+BUNDESPULS_ENABLED = True
+BUNDESPULS_FEEDS = [
+    {"name": "Bundespuls Vorgänge", "weight": 3, "tier": "kern",
+     "url": "https://bundespuls.de/feed/vorgang"},
+    {"name": "Bundespuls Abstimmungen", "weight": 3, "tier": "kern",
+     "url": "https://bundespuls.de/feed/abstimmung"},
+    {"name": "Bundespuls Plenarprotokolle", "weight": 2, "tier": "kontext",
+     "url": "https://bundespuls.de/feed/plenarprotokoll"},
+]
+
+# Bundestag Live-API: Tagesordnung der Plenarsitzungen (XML, kein Key).
+# Mit Artikeltext (tier "kern", siehe fetch_tagesordnung) oder nur mit
+# Titel (tier "kontext" - besteht die Beleg-Pruefung ohnehin fast nie).
+TAGESORDNUNG_ENABLED = True
+TAGESORDNUNG_URL = "https://www.bundestag.de/static/appdata/plenum/v2/conferences.xml"
+
+# Lobbyregister: neu registrierte/aktualisierte Eintraege (JSON, kein Key
+# noetig fuer die Suche-Schnittstelle des Web-Frontends).
+LOBBYREGISTER_ENABLED = True
+LOBBYREGISTER_URL = "https://www.lobbyregister.bundestag.de/sucheJson"
+
+# Parteispenden ueber 35.000 Euro nach § 25 PartG (HTML-Tabelle je Jahr).
+PARTEISPENDEN_ENABLED = True
+PARTEISPENDEN_URL = "https://www.bundestag.de/parlament/praesidium/parteienfinanzierung/fundstellen50000"
+
+# Einzelstimmen: Fraktionen, die bei einer namentlichen Abstimmung nicht
+# einheitlich gestimmt haben (abgeordnetenwatch /votes, kein Key noetig).
+# Ab wie vielen Abweichlern (Minderheitsseite unter Ja/Nein/Enthaltung) das
+# als meldenswert gilt - verhindert Rauschen durch einzelne Ausreisser.
+EINZELSTIMMEN_ENABLED = True
+EINZELSTIMMEN_MIN_ABWEICHLER = 2
+
+# Nebeneinkuenfte der Abgeordneten (abgeordnetenwatch /sidejobs, kein Key).
+NEBENTAETIGKEITEN_ENABLED = True
+NEBENTAETIGKEITEN_URL = "https://www.abgeordnetenwatch.de/recherchen/nebentaetigkeiten"
+
+# Ausschuesse: Besetzungsaenderungen (Bundestag XML, kein Key noetig).
+AUSSCHUESSE_ENABLED = True
+AUSSCHUESSE_INDEX_URL = "https://www.bundestag.de/xml/v2/ausschuesse/index.xml"
+
+# --- Recherche (Websuche fuer Context- und So-what-Slide) ------------------
+# Das Modell darf ueber unsere amtlichen Quellen hinaus recherchieren, aber
+# nur auf dieser Allowlist. Haelt Meinungsseiten und Muell raus - und ist die
+# zweite Verteidigungslinie gegen Prompt-Injection aus fremden Webseiten
+# (die erste ist die unveraenderte Belegpflicht in llm.verify_slides).
+#
+# Arbeitsteilung: Die harten Fakten (Beschluss, Zahlen, Abstimmung) kommen
+# aus unseren amtlichen Quellen und werden woertlich geprueft. Die Recherche
+# liefert nur ERKLAERENDEN Hintergrund ("Was ist ein Freibetrag?") - dafuer
+# gibt es keinen woertlichen Beleg-Satz und deshalb keine Beleg-Pruefung,
+# sondern den KI-Faktencheck in llm.judge_slides(). Jede recherchierte Zahl
+# traegt ihre Fundstelle mit und landet in der Telegram-Pruefliste.
+#
+# Ebenfalls wichtig: Steht hier eine Domain, die den Anthropic-Crawler
+# aussperrt, antwortet die API mit 400 und der GANZE Lauf scheitert. Die
+# grossen Nachrichtenseiten (tagesschau.de, zeit.de, sueddeutsche.de,
+# faz.net, spiegel.de, deutschlandfunk.de, br.de, wdr.de, ndr.de) sind
+# genau deshalb NICHT in der Liste - alle getestet, alle gesperrt.
+# --- Aufwand pro Aufruf -----------------------------------------------------
+# Sonnet 5 denkt von sich aus mit (adaptive thinking, effort "high"), wenn man
+# nichts angibt - das ist der groesste Zeit- und Output-Token-Posten im Lauf.
+# Fuers Schreiben ist das richtig, fuer die mechanischen Schritte nicht:
+# judge_slides() beantwortet eine Ja/Nein-Frage und gibt {"ok": ...} zurueck.
+EFFORT_JUDGE = "low"
+# Budget fuer den Schreibschritt. Das Modell denkt erst nach und schreibt dann
+# das komplette JSON - reicht das Budget nicht, bricht die Antwort mitten im
+# JSON ab und das Thema faellt still aus dem Lauf ("unvollstaendiges JSON").
+# Mit den Feldern begriff und folgen ist der Entwurf laenger geworden; 12000
+# hat dafuer nicht mehr gereicht.
+DRAFT_MAX_TOKENS = 24000
+
+JUDGE_MAX_TOKENS = 2000
+
+RESEARCH_ENABLED = True
+# Kostentreiber: jede Suche haengt ihre Treffer an den Kontext, und jeder
+# Tool-Durchgang schickt den ganzen Kontext erneut. Gemessen: 5 erlaubte
+# Suchen -> ~65.000 Input-Tokens -> rund 0,20 $ pro Recherche.
+#
+# Stand 16.09.2026: 3 statt 5 - zusammen mit zwei anderen Aenderungen, die
+# den Suchbedarf ueberhaupt erst senken:
+#
+#  - Die Recherche sah bisher nur 3.000 Zeichen des Quelltextes. Beim
+#    Ausschussbericht zum antragslosen Kindergeld (24.000 Zeichen) lagen
+#    "B. Loesung", "D. Haushaltsausgaben" und "E. Erfuellungsaufwand"
+#    ausserhalb dieses Fensters - also genau die Abschnitte mit den Kosten
+#    und Zahlen. Das Modell suchte im Netz nach Angaben, die im Dokument
+#    standen, das es gerade in der Hand hatte.
+#  - Der Prompt sagt jetzt ausdruecklich, dass nur gesucht werden soll, was
+#    im Quelltext fehlt - und dass gar keine Suche richtig ist, wenn er
+#    schon alles hergibt.
+#
+# Die Obergrenze ist damit eher Sicherheitsnetz als Arbeitsanweisung.
+RESEARCH_QUELLTEXT_CHARS = 10000
+RESEARCH_MAX_SEARCHES = 3
+
+# Kaufkraft-Vergleich: was ein historischer Betrag heute ungefaehr wert waere.
+# Pauschale Annahme, keine Messung - und genau so steht sie auch auf der
+# Karte. Der Versuch, den Wert zu recherchieren, ist einmal gelaufen und hat
+# nur das Suchbudget verbrannt, ohne ein Ergebnis zu liefern.
+#
+# 2 Prozent sind das Ziel der EZB und liegen nahe am langfristigen deutschen
+# Mittel. Fuer einzelne Jahrzehnte trifft das nicht zu - die Zahl ist eine
+# Groessenordnung und darf nie als amtlicher Wert beschriftet werden.
+KAUFKRAFT_INFLATION = 0.02
+
+# Recherche ist Nachschlagen und Zusammenfassen, kein schweres Nachdenken -
+# anders als das Schreiben, das auf "high" bleibt.
+EFFORT_RESEARCH = "medium"        # max_uses pro Thema
+RESEARCH_DOMAINS = [
+    "bundestag.de", "bundesregierung.de", "destatis.de", "bundesbank.de",
+    "bundesrat.de", "bundesfinanzministerium.de", "bmas.de", "bmwk.de",
+    "gesetze-im-internet.de", "bundesanzeiger.de", "abgeordnetenwatch.de",
+    "handelsblatt.com",
+]
+
+# --- Karussell -------------------------------------------------------------
+# Balkendiagramm: zu wenige Balken sind langweilig, zu viele unlesbar.
+CHART_MIN_BARS = 2
+CHART_MAX_BARS = 4
+
+# Laufende Wahlperiode. Steht laut Design-System im Fuss jeder Abstimmungs-
+# Slide: eine Sitzverteilung ohne Wahlperiode ist nicht nachpruefbar.
+WAHLPERIODE = 21
+
+# --- Sitzverteilung --------------------------------------------------------
+# Der 21. Bundestag, in echter Kammerreihenfolge von links nach rechts. Summe
+# 630 - das ist die Zahl, die der Sitzbogen zeichnet. Die FDP hat kein Mandat
+# und darf hier nicht auftauchen; wer das Roster anfasst, aendert damit jede
+# Abstimmungs-Slide, also bitte gegen die amtliche Sitzverteilung pruefen.
+#
+# Die Farben sind die einzige Stelle im Deck, an der Parteifarben erlaubt
+# sind (Design-System §1). Nie fuer Text, Karten oder Flaechen verwenden.
+BUNDESTAG_SITZE = [
+    {"key": "Linke",   "name": "Linke",    "sitze": 64,  "farbe": "#BE3075"},
+    {"key": "SSW",     "name": "SSW",      "sitze": 1,   "farbe": "#003C8F"},
+    {"key": "Gruene",  "name": "Grüne",    "sitze": 85,  "farbe": "#409A3C"},
+    {"key": "SPD",     "name": "SPD",      "sitze": 120, "farbe": "#E3000F"},
+    {"key": "CDU/CSU", "name": "CDU/CSU",  "sitze": 208, "farbe": "#151B20"},
+    {"key": "AfD",     "name": "AfD",      "sitze": 152, "farbe": "#009EE0"},
+]
+
+# Schreibweisen aus den Plenarprotokollen (siehe abstimmung.FRAKTIONEN) auf die
+# Roster-Schluessel. Fraktionslose stehen bewusst nicht drin: fuer sie weist das
+# Roster keine Sitze aus, sie bekommen also auch keine Punkte im Bogen.
+FRAKTION_ALIAS = {
+    "CDU/CSU": "CDU/CSU",
+    "SPD": "SPD",
+    "AfD": "AfD",
+    "BÜNDNIS 90/DIE GRÜNEN": "Gruene",
+    "BÜNDNIS 90/ DIE GRÜNEN": "Gruene",
+    "Die Linke": "Linke",
+    "DIE LINKE": "Linke",
+    "SSW": "SSW",
+}
+
+# Mindestlaenge des Quelltexts, damit ein Thema ueberhaupt in die (teure)
+# Recherche geht - siehe llm.quelltext_tragfaehig(). Teaser-Schnipsel aus
+# Aggregator-Feeds scheitern sonst erst nach der Recherche an der Belegpflicht.
+# Bewusst niedrig: die eigentliche Unterscheidung macht die Satzzaehlung,
+# nicht die Laenge. Kurze, aber echte Pressemitteilungen sollen durchkommen.
+MIN_QUELLTEXT_CHARS = 200
+
+# --- Bild auf der Cover-Slide ----------------------------------------------
+# Stockfoto von Pexels, nur auf Slide 1, nur wenn ein Thema unten wirklich
+# trifft. Braucht PEXELS_API_KEY in der .env (kostenlos, 200 Abfragen/Stunde).
+# Ohne Key oder ohne Treffer bleibt das Cover rein typografisch - das ist der
+# Normalfall, kein Fehler.
+BILDER_ENABLED = True
+BILDER_TIMEOUT = 20
+BILDER_MIN_BREITE = 1200     # schmaler skaliert auf 928 px Kartenbreite sichtbar
+
+# Die Suchphrase wird NICHT aus der Meldung gebaut, sondern steht hier fest.
+# So kann die Suche nur Motive liefern, die du einmal freigegeben hast.
+# Reihenfolge = Rangfolge: das erste passende Thema gewinnt, deshalb stehen
+# die spezifischen oben und das allgemeine Parlamentsmotiv unten.
+# Absichtlich Orte und Gegenstaende statt Personen - siehe bilder.py.
+BILDER_THEMEN = [
+    # Gesucht wird mit STAEMMEN, nicht mit ganzen Woertern: deutsche
+    # Ueberschriften bauen Komposita, und "miete" findet die "Mietpreis-
+    # bremse" nicht. Alles in Umschrift, ohne Umlaute - bilder.py bringt den
+    # Text in dieselbe Form.
+    #
+    # "nicht" ist die Gegenprobe zu einem Stamm, der in einem anderen Wort
+    # steckt. Lieber kein Bild als das falsche: ein Spielplatz neben einer
+    # Meldung ueber Kinderarmut ist schlimmer als eine rein typografische
+    # Karte.
+    {"thema": "steuern",
+     "woerter": ["steuer", "freibetrag", "pauschale", "abgabe", "soli",
+                 "umsatzsteuer", "einkommensteuer"],
+     "nicht": ["steuerung", "gesteuert", "steuerrad"],
+     "suche": "Steuerbescheid Schreibtisch Kugelschreiber"},
+    {"thema": "rente",
+     "woerter": ["rente", "rentner", "pension", "altersvorsorge", "ruhestand",
+                 "erwerbsminderung"],
+     "nicht": ["rentabel", "rentabilitaet"],
+     "suche": "aeltere Haende Spardose Ruhestand"},
+    {"thema": "arbeit",
+     "woerter": ["lohn", "gehalt", "arbeitsmarkt", "beschaeftig", "arbeitslos",
+                 "tarif", "buergergeld", "kurzarbeit", "beitragsbemessung",
+                 "arbeitnehmer", "arbeitgeber"],
+     "nicht": ["belohn", "lohnt", "lohnend"],
+     "suche": "Baustelle Werkstatt Arbeitskleidung"},
+    {"thema": "wohnen",
+     "woerter": ["miet", "wohn", "immobilie", "neubau", "wohnungsbau",
+                 "bauland", "bauantrag", "bauministeri", "grundstueck"],
+     # "vermiet" und "vermieter": das E-Scooter-Haftungsgesetz handelt vom
+     # Vermieter der Roller, und "miet" traf mitten in dieses Wort. Das
+     # Cover bekam daraufhin ein Foto von Wohnbloecken.
+     "nicht": ["gewohnheit", "gewohnt", "mietwagen", "vermiet", "vermieter"],
+     "suche": "Wohnblock Fassade Deutschland"},
+    # Eigenes Thema statt eines Stichworts bei "verkehr": dessen Suchbegriff
+    # ist ein Regionalzug, und ein Zugfoto ueber einer E-Scooter-Meldung ist
+    # nur unauffaelliger falsch als das Wohnblock-Foto davor.
+    {"thema": "mikromobilitaet",
+     "woerter": ["e-scooter", "escooter", "e-tretroller", "tretroller",
+                 "elektrokleinstfahrzeug", "elektrokleinst", "leihroller",
+                 "mikromobil"],
+     "suche": "E-Scooter Gehweg Strasse Stadt"},
+    {"thema": "energie",
+     "woerter": ["strom", "energie", "gaspreis", "gasnetz", "erdgas",
+                 "gasspeicher", "heiz", "netzentgelt", "waermepumpe",
+                 "kilowattstunde"],
+     "nicht": ["stroemung"],
+     "suche": "Stromzaehler Hochspannungsmast"},
+    # Eigenes Thema, nicht nur Stichworte im Verkehr: eine Meldung ueber
+    # Ladesaeulen bekam sonst einen Regionalzug.
+    {"thema": "elektromobilitaet",
+     "woerter": ["ladesaeule", "ladeinfrastruktur", "e-auto", "elektroauto",
+                 "ladepunkt", "elektromobil"],
+     "suche": "Ladesaeule Elektroauto Parkplatz"},
+    {"thema": "verkehr",
+     "woerter": ["pendler", "bahn", "nahverkehr", "maut", "verkehr",
+                 "deutschlandticket", "kilometer", "tempolimit",
+                 "fuehrerschein"],
+     "nicht": ["bahnbrechend", "laufbahn"],
+     "suche": "Regionalzug Bahnsteig Deutschland"},
+    {"thema": "gesundheit",
+     "woerter": ["kranken", "pflege", "gesundheit", "klinik", "arznei",
+                 "apotheke", "krankenkasse", "zuzahlung"],
+     "suche": "Krankenhausflur leer"},
+    {"thema": "familie",
+     "woerter": ["kindergeld", "elterngeld", "familie", "kita", "kinder",
+                 "unterhaltsvorschuss", "mutterschutz"],
+     "nicht": ["kinderarmut", "kindeswohl", "missbrauch"],
+     "suche": "Spielplatz Schaukel leer"},
+    {"thema": "bildung",
+     "woerter": ["schul", "bafoeg", "studium", "studier", "ausbildung",
+                 "hochschul", "lehrer", "azubi"],
+     "nicht": ["schulden", "verschuld"],
+     "suche": "leerer Klassenraum Tafel"},
+    {"thema": "haushalt",
+     "woerter": ["haushalt", "schulden", "etat", "milliarden", "inflation",
+                 "preise", "sondervermoegen"],
+     "nicht": ["haushaltsgeraet"],
+     "suche": "Euro Muenzen Geldscheine"},
+    {"thema": "landwirtschaft",
+     "woerter": ["landwirt", "bauern", "agrar", "ernte", "lebensmittel",
+                 "tierhaltung"],
+     "suche": "Getreidefeld Traktor"},
+    {"thema": "klima",
+     "woerter": ["klima", "co2", "emission", "umwelt", "waerme", "solar",
+                 "windkraft"],
+     "suche": "Windraeder Feld Deutschland"},
+    {"thema": "digital",
+     "woerter": ["digital", "daten", "internet", "cyber", "breitband",
+                 "kuenstliche intelligenz"],
+     "suche": "Serverraum Netzwerkkabel"},
+    # Allgemeiner Rueckfall fuer reine Verfahrensmeldungen. Zaehlt halb,
+    # damit jedes echte Sachthema ihn schlaegt.
+    {"thema": "parlament",
+     "rueckfall": True,
+     "woerter": ["bundestag", "bundesrat", "gesetz", "kabinett", "abstimmung",
+                 "ausschuss", "verordnung", "drucksache"],
+     "suche": "Reichstagsgebaeude Berlin Architektur"},
+]
+
+# Letzte Slide, rein statisch - kein Modell, keine Belegpflicht.
+# Keine Gedankenstriche: das Design-System laesst als Satzzeichen nur
+# Doppelpunkt, Komma und Punkt zu.
+CTA_HEADLINE = "Einordnung statt\nSchlagzeile."
+CTA_BODY = "Jeden zweiten Tag ein Beschluss, der dich betrifft: mit Quelle und Rechenweg."
+CTA_ACTION = "Newsletter abonnieren. Link in Bio"
+
+# --- Vorfilter (laeuft ohne Modell, spart 80-90 % der Kosten) ---------------
+# Nur Items, die mindestens einen Begriff enthalten, gehen ins Modell.
+KEYWORDS = [
+    "gesetz", "beschluss", "kabinett", "bundestag", "bundesrat", "verordnung",
+    "haushalt", "urteil", "reform", "statistik", "prozent", "milliarden",
+    "millionen", "koalition", "abstimmung", "entwurf", "richtlinie", "quote",
+    "spende", "lobbyregister", "tagesordnung", "plenarprotokoll",
+    "abweichler", "nebentaetigkeit", "nebeneinkuenfte", "ausschuss",
+]
+
+# Items mit diesen Begriffen werden verworfen (Termine, Grussworte, PR).
+BLOCKLIST = [
+    "grusswort", "grußwort", "terminhinweis", "einladung zur", "bildergalerie",
+    "podcast", "stellenausschreibung", "nachruf",
+]
