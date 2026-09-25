@@ -74,12 +74,10 @@ def main() -> int:
         notify.send_carousel(paths, caption, carousel, nummer)
         gebaut.append((paths, caption))
 
-    # Stand sichern, BEVOR die Freigabe abgewartet wird: gebaut ist gebaut.
-    # Faellt der Lauf beim Upload aus oder antwortest du nicht, sollen
-    # dieselben Meldungen morgen trotzdem nicht noch einmal kommen - sie
-    # standen ja auf deinem Handy.
-    seen.update(c["item"]["id"] for c in carousels)
-    sources.save_seen(seen)
+    # Die Cover-Rotation zaehlt, was du gesehen hast, nicht was gepostet ist.
+    # "Gesehen" (seen.json) dagegen bekommt nur das Karussell, das online
+    # geht: was du nicht gewaehlt hast, darf in einem spaeteren Lauf wieder
+    # auftauchen - dann neu gebaut, womoeglich anders formuliert.
     cover.letzte_speichern(zuletzt)
 
     # Erst pruefen, ob ein Upload ueberhaupt moeglich ist - sonst gibst du frei,
@@ -111,6 +109,9 @@ def main() -> int:
                           f"fehlgeschlagen:\n{instagram.ohne_geheimnis(str(exc))}")
         raise
 
+    # Erst nach dem Post: scheitert der Upload, bleibt das Thema offen.
+    seen.add(carousels[wahl - 1]["item"]["id"])
+    sources.save_seen(seen)
     notify.send_text(f"Option {wahl} ist online.")
     print("Fertig. Online.")
     return 0
