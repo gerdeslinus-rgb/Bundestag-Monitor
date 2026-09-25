@@ -16,6 +16,11 @@ THEMEN_RESERVE = 2
 MAX_ITEMS = 40             # Wie viele Kandidaten maximal ins Themen-Ranking gehen
 LOOKBACK_HOURS = 30        # Wie weit zurueck Quellen gelesen werden
 TIMEZONE = "Europe/Berlin"
+# So lange wartet der Lauf auf deinen Knopfdruck. GitHub startet den Cron oft
+# Stunden zu spaet; mit 25 Minuten lief das Fenster ab, bevor du die Karten
+# ueberhaupt gesehen hast. Obergrenze ist der Job-Deckel in daily.yml
+# (timeout-minutes), der muss darueber liegen.
+FREIGABE_MINUTEN = 300
 
 # --- Modelle ---------------------------------------------------------------
 # Billiges Modell sortiert vor, teures Modell schreibt nur die Finalisten.

@@ -79,6 +79,10 @@ def ablegen(pfade: list, nummer: int) -> list:
     _identitaet_sichern()
     _git("add", "--", str(DOCS))
     _git("commit", "-m", f"karten: {tag} karussell {nummer}")
+    # Der Lauf wartet bis zu Stunden auf die Freigabe. Pusht in der Zeit
+    # jemand anderes nach main, wird ein blankes push abgewiesen - und die
+    # Freigabe ist erteilt, aber nichts geht online.
+    _git("pull", "--rebase", "--autostash")
     _git("push")
     print(f"  = {len(urls)} Karten nach {ziel} gepusht")
     return urls

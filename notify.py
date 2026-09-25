@@ -2,9 +2,14 @@
 
 import json
 import os
+import secrets
 import time
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import requests
+
+import config
 
 API = "https://api.telegram.org/bot{token}/{method}"
 
@@ -101,7 +106,25 @@ def _updates_leeren() -> int:
     return ergebnisse[-1]["update_id"] + 1 if ergebnisse else 0
 
 
-def frage_auswahl(anzahl: int, minuten: int = 25) -> int | None:
+def _abgelaufen(anfrage: dict) -> None:
+    """Quittiert einen Knopf, der zu keinem laufenden Lauf gehoert.
+
+    Ohne Quittung dreht sich der Knopf im Client endlos, und es sieht aus, als
+    haenge der Lauf. Die Knoepfe der alten Nachricht fliegen gleich mit raus,
+    damit sie nicht weiter wie eine offene Frage aussehen.
+    """
+    _call("answerCallbackQuery", data={
+        "callback_query_id": anfrage["id"],
+        "text": "Diese Frage ist abgelaufen - es gilt nur die neueste.",
+        "show_alert": True})
+    nachricht = anfrage.get("message") or {}
+    if nachricht:
+        _call("editMessageReplyMarkup", data={
+            "chat_id": nachricht["chat"]["id"],
+            "message_id": nachricht["message_id"]})
+
+
+def frage_auswahl(anzahl: int, minuten: int = config.FREIGABE_MINUTEN) -> int | None:
     """Fragt, welches Karussell online geht - genau eines oder keines.
 
     Rueckgabe ist die Nummer (1-basiert) oder None. None heisst in beiden
@@ -110,21 +133,30 @@ def frage_auswahl(anzahl: int, minuten: int = 25) -> int | None:
     traegt die redaktionelle Kontrolle nach Art. 50 Abs. 4 KI-VO, und der
     Ausfall dieser Kontrolle darf nie zu einem Post fuehren, sondern immer nur
     zu keinem.
+
+    Es zaehlt nur ein Knopf dieser einen Frage, aus deinem Chat. Die Knoepfe
+    tragen dafuer eine Kennung pro Lauf: frueher galt jedes "wahl:0" - auch
+    das "Keine" unter einer alten Frage von gestern, und das beendete den Lauf
+    lautlos ohne Post.
     """
     chat_id = os.environ["TELEGRAM_CHAT_ID"]
     # Erst leeren, dann fragen: sonst zaehlt eine alte Antwort mit.
     offset = _updates_leeren()
+    kennung = secrets.token_hex(4)
 
-    knoepfe = [[{"text": f"Option {i}", "callback_data": f"wahl:{i}"}]
+    knoepfe = [[{"text": f"Option {i}", "callback_data": f"wahl:{kennung}:{i}"}]
                for i in range(1, anzahl + 1)]
-    knoepfe.append([{"text": "Keine", "callback_data": "wahl:0"}])
-    _call("sendMessage", data={
+    knoepfe.append([{"text": "Keine", "callback_data": f"wahl:{kennung}:0"}])
+    frist = datetime.now(ZoneInfo(config.TIMEZONE)) + timedelta(minutes=minuten)
+    frage = _call("sendMessage", data={
         "chat_id": chat_id,
         "text": ("Welches Karussell geht online?\n"
                  "Vorher die Quelllinks oben oeffnen und pruefen.\n\n"
-                 f"Ohne Antwort binnen {minuten} Minuten wird nichts "
+                 f"Ohne Antwort bis {frist:%H:%M} Uhr wird nichts "
                  "veroeffentlicht."),
         "reply_markup": json.dumps({"inline_keyboard": knoepfe})})
+    frage_id = (frage.json()["result"]["message_id"]
+                if frage is not None and frage.ok else None)
 
     ende = time.time() + minuten * 60
     while time.time() < ende:
@@ -137,23 +169,39 @@ def frage_auswahl(anzahl: int, minuten: int = 25) -> int | None:
         for update in resp.json().get("result", []):
             offset = update["update_id"] + 1
             anfrage = update.get("callback_query") or {}
-            if not anfrage.get("data", "").startswith("wahl:"):
+            daten = anfrage.get("data", "")
+            if not daten.startswith("wahl:"):
                 continue
-            wahl = int(anfrage["data"].split(":")[1])
+            teile = daten.split(":")
+            aus_chat = str((anfrage.get("message") or {})
+                           .get("chat", {}).get("id"))
+            if len(teile) != 3 or teile[1] != kennung or aus_chat != chat_id:
+                _abgelaufen(anfrage)
+                continue
+            wahl = int(teile[2])
             # Ohne Quittung dreht sich der Knopf im Client weiter, als haenge
             # der Lauf.
-            _call("answerCallbackQuery",
-                  data={"callback_query_id": anfrage["id"]})
+            _call("answerCallbackQuery", data={
+                "callback_query_id": anfrage["id"],
+                "text": (f"Option {wahl} wird veroeffentlicht ..." if wahl
+                         else "Nichts wird veroeffentlicht.")})
             _call("editMessageText", data={
                 "chat_id": chat_id,
                 "message_id": anfrage["message"]["message_id"],
-                "text": (f"Option {wahl} freigegeben." if wahl
-                         else "Nichts freigegeben.")})
+                "text": (f"Option {wahl} freigegeben - Upload laeuft."
+                         if wahl else "Nichts freigegeben.")})
+            print(f"  = Antwort: {'Option ' + str(wahl) if wahl else 'Keine'}")
             return wahl or None
 
     print("  ! keine Antwort im Zeitfenster - es wird nichts veroeffentlicht")
-    send_text("Zeitfenster abgelaufen, nichts veroeffentlicht. "
-              "Die Karten liegen im Lauf-Protokoll.")
+    if frage_id is not None:
+        # Knoepfe weg: sonst sieht die Frage noch offen aus, und ein spaeter
+        # Druck dreht sich ins Leere, weil kein Lauf mehr zuhoert.
+        _call("editMessageText", data={
+            "chat_id": chat_id, "message_id": frage_id,
+            "text": "Zeitfenster abgelaufen, nichts veroeffentlicht."})
+    else:
+        send_text("Zeitfenster abgelaufen, nichts veroeffentlicht.")
     return None
 
 

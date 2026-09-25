@@ -9,6 +9,7 @@ Freigabe fuehrt nie zu einem Post, sondern immer nur zu keinem.
 Gedacht fuer alle zwei Tage.
 """
 
+import os
 import sys
 import traceback
 
@@ -80,6 +81,16 @@ def main() -> int:
     seen.update(c["item"]["id"] for c in carousels)
     sources.save_seen(seen)
     cover.letzte_speichern(zuletzt)
+
+    # Erst pruefen, ob ein Upload ueberhaupt moeglich ist - sonst gibst du frei,
+    # und erst danach faellt auf, dass ein Schluessel fehlt.
+    fehlt = [k for k in ("IG_USER_ID", "IG_ACCESS_TOKEN", "PAGES_BASE_URL")
+             if not os.environ.get(k)]
+    if fehlt:
+        notify.send_error("Karten sind gebaut, aber der Upload ist nicht "
+                          f"eingerichtet - es fehlt: {', '.join(fehlt)}. "
+                          "Keine Freigabefrage. Siehe SETUP.md, Schritt 1.5.")
+        return 1
 
     wahl = notify.frage_auswahl(len(gebaut))
     if wahl is None:

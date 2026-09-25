@@ -12,11 +12,17 @@ permissions:
 jobs:
   digest:
     runs-on: ubuntu-latest
-    # Der Lauf wartet nach dem Senden bis zu 25 Minuten auf die
-    # Freigabe. 15 Minuten Gesamtdeckel wuerden ihn mitten in der
-    # Wartezeit abschneiden, und dann ist die Antwort ins Leere
-    # gedrueckt.
-    timeout-minutes: 45
+    # Der Lauf wartet nach dem Senden bis zu FREIGABE_MINUTEN (config.py,
+    # 300) auf die Freigabe, davor braucht der Bau rund 15 Minuten, danach
+    # der Upload bis zu 10. Der Deckel muss darueber liegen, sonst schneidet
+    # er die Wartezeit ab und die Antwort geht ins Leere. Hoechstwert bei
+    # GitHub sind 360.
+    timeout-minutes: 350
+    # Nie zwei Laeufe gleichzeitig: beide wuerden getUpdates abfragen, und
+    # Telegram liefert jeden Knopfdruck nur an einen davon.
+    concurrency:
+      group: digest
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
 
@@ -43,6 +49,10 @@ jobs:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           PAGES_BASE_URL: ${{ vars.PAGES_BASE_URL }}
+          # Sonst puffert Python die Ausgabe bis zum Ende, und im Log traegt
+          # jede Zeile denselben Zeitstempel - man sieht nicht, wann die Frage
+          # kam und wann die Antwort.
+          PYTHONUNBUFFERED: "1"
         run: python run.py
 
       # Beides gehoert zurueck ins Repo: seen.json, damit keine Meldung zweimal
@@ -58,4 +68,6 @@ jobs:
           # kippen und auch seen.json nicht mehr sichern.
           git add -A data/
           git diff --staged --quiet || git commit -m "stand: $(date -u +%F)"
+          # Nach Stunden Wartezeit steht main womoeglich weiter.
+          git pull --rebase --autostash
           git push

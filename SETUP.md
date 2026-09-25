@@ -234,11 +234,13 @@ ein paar Cent, eine unwahre Tatsachenbehauptung kostet vierstellig.
 | 08:10 | Du drueckst "Option 1", "Option 2" oder "Keine" |
 | 08:12 | Der Lauf legt die Karten ab und postet - oder eben nicht |
 
-**Das Zeitfenster ist begrenzt.** Der Actions-Job wartet 25 Minuten auf deinen
-Knopfdruck, danach beendet er sich und die Antwort geht ins Leere. Drueckst du
-zu spaet, ist das kein Schaden: es wurde nur nichts gepostet, und die Karten
-liegen im Actions-Protokoll. Passt die Uhrzeit nicht zu deinem Morgen, stell
-den Cron um - nicht das Zeitfenster hoch.
+**Das Zeitfenster ist begrenzt.** Der Actions-Job wartet `FREIGABE_MINUTEN`
+(config.py, 5 Stunden) auf deinen Knopfdruck; die Frage nennt die Uhrzeit, bis
+zu der sie gilt. Danach verschwinden die Knoepfe, und es wurde nur nichts
+gepostet. So lang, weil GitHub den Cron oft Stunden zu spaet startet. Im
+oeffentlichen Repo kostet die Wartezeit keine Actions-Minuten. Es gilt immer
+nur die neueste Frage: ein Knopf unter einer alten Nachricht meldet
+"abgelaufen" und bewirkt nichts.
 
 ---
 
