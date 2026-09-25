@@ -932,35 +932,62 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
     return paths
 
 
+HASHTAGS = "#politik #bundestag #deutschland #erklaert"
+
+
+def _caption_quelle(quelle: str) -> str:
+    """DIP liefert "Bundestag, Vorgang Verabschiedet" - der Beratungsstand
+    ist fuer die Suche gedacht, nicht fuer Leser."""
+    if quelle.startswith("Bundestag, Vorgang"):
+        return "Deutscher Bundestag"
+    return quelle
+
+
+def _commons_credit(credit: str) -> str | None:
+    """Kuerzt einen Commons-Credit auf Urheber und Lizenz.
+
+    Gemeinfreie Dateien brauchen keine Nennung - die fallen raus. Der Hinweis
+    "via Wikimedia Commons" steht einmal am Ende der Zeile statt je Bild.
+    """
+    if re.search(r"public domain|gemeinfrei|\bPD\b|CC0", credit, re.I):
+        return None
+    return (credit.replace(", via Wikimedia Commons", "")
+                  .replace(", Wikimedia Commons", ""))
+
+
 def build_caption(carousel: dict) -> str:
+    """Kurz: Titel, eine Kernaussage, Verweis aufs Karussell, Fusszeile.
+
+    Die Slides tragen den Inhalt; der Bildtext wiederholt ihn nicht. Zwei
+    Dinge bleiben aber immer drin: der Hinweis auf die redaktionelle Pruefung
+    (Art. 50 Abs. 4 KI-VO, siehe README) und die Bildnachweise - Pexels
+    verlangt den Fotografen, CC BY/BY-SA Urheber und Lizenz. Das Cover traegt
+    nach der Spec keinen Credit, darum steht er hier.
+    """
     slides = carousel["slides"]
     item = carousel["item"]
     now = datetime.now(ZoneInfo(config.TIMEZONE))
 
-    lines = [slides.get("titel", item["title"]), "", slides.get("hook", ""), ""]
-    lines += slides.get("context", [])
-    if slides.get("sowhat"):
-        lines += ["", slides["sowhat"].get("text", "")]
-    lines += [
-        "",
-        f"Quelle: {item['source']}, {now.day}. {MONATE[now.month - 1]} {now.year}. "
-        "Zusammengestellt aus amtlichen Veröffentlichungen, vor der "
-        "Veröffentlichung redaktionell geprüft.",
-    ]
+    # Die "Was heisst das fuer dich"-Aussage ist der beste Einzeiler.
+    # Datenkarussells haben keine - dann der Haken vom Cover.
+    kern = ((slides.get("sowhat") or {}).get("text") or slides.get("hook") or "")
+    lines = [slides.get("titel", item["title"])]
+    if kern:
+        lines += ["", kern]
+    lines += ["", "Alle Details im Karussell ➡️", "", "—",
+              f"Quelle: {_caption_quelle(item['source'])}, {now:%d.%m.%Y}",
+              "Aus amtlichen Quellen, redaktionell geprüft."]
 
-    # Pexels verlangt fuer die API-Nutzung die Nennung des Fotografen und
-    # einen Hinweis auf Pexels. Das Cover traegt nach der Spec keine Zeile
-    # ausser Haken und Stuetzzeile - der Credit steht deshalb allein hier.
     bild = carousel.get("bild")
     if bild:
-        lines += ["", f"Titelfoto: {bild['fotograf']} / Pexels: {bild['seite']}"]
+        lines.append(f"Foto: {bild['fotograf']}/Pexels")
 
-    # Portraets und Logos stehen unter freier Lizenz (Commons) - die
-    # Nennung gehoert, wie der Pexels-Credit, in den Bildtext.
-    credits = [c for c in [(slides.get("portraet") or {}).get("credit"),
-                           *(slides.get("logo_credits") or [])] if c]
-    if credits:
-        lines += [""] + list(dict.fromkeys(credits))
+    roh = [(slides.get("portraet") or {}).get("credit"),
+           *(slides.get("logo_credits") or [])]
+    commons = [k for k in map(_commons_credit, dict.fromkeys(c for c in roh if c))
+               if k]
+    if commons:
+        lines.append(" · ".join(commons) + " (Wikimedia Commons)")
 
-    lines += ["", "#politik #bundestag #deutschland #erklaert"]
+    lines += ["", HASHTAGS]
     return "\n".join(lines)
