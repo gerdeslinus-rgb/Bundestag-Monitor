@@ -21,6 +21,8 @@ This system exists to make editorial news carousels that do **not** read as AI-g
 
 **Party colors — charts only.** CDU/CSU `#151B20`, SPD `#E3000F`, Grüne `#409A3C`, Linke `#BE3075`, AfD `#009EE0`, SSW `#003C8F`. Charts are the only place color leaves the palette; never use party colors for type, cards or backgrounds.
 
+**Direction colors — bar charts only** (added 25.09.2026). Colored only for **measured values** (statistics), judged from the everyday view of most households, never for the rules of a law. `wertung: "hoch_gut"` (wages, pensions, jobs, and house/apartment prices as the value of property): increase green, decrease red. `wertung: "hoch_schlecht"` (consumer prices, inflation, rents, accidents, unemployment; added 25.09.2026): increase red, decrease green. Everything without a clear everyday direction (population, exports, migration, public spending) stays neutral navy: a color is a judgement. Tokens: light ground `--gut #1E7B45`, `--schlecht #B42318`; ink ground `--gut-hell #5CC98E`, `--schlecht-hell #F2766B`. Bar and value take the color; non-highlighted bars at 50 % opacity.
+
 Rules
 - **Two grounds carry the deck** (ink + off-white). The steel blue is the only accent and is used sparingly.
 - **Alternate grounds, starting from the cover.** The cover's ground is set by the variant drawn per §6.1: a dark cover (`1a`, `1b`, `1d`, `1f`) gives ink → off-white → ink → off-white → ink, a light one (`1c`, `1e`) gives off-white → ink → off-white → ink → off-white. What is fixed is the alternation, not which slide number is dark: two identical grounds never sit next to each other. Max 2 background colors in the deck.
@@ -74,6 +76,10 @@ Copy length is unknown at design time, so **the container must define the measur
 - Geometry is derived, never hardcoded: `W = 2 * (ro + DOT + PAD)`, `cx = W / 2`, `cy = ro + DOT + PAD`, `viewBox = "0 0 W H"`. A hardcoded viewBox clips the edge seats.
 - Inner radius must clear the centre label box (`ri ≈ 260` for a ~460px line). Verify no dot overlaps the label.
 - Legend below the arc, 2 columns, 24px: swatch + fraction + `Ja von Sitzen` (`183 von 208`), plus one key row explaining the hollow circle.
+
+### Negative values: bars from a zero line
+
+As soon as one value in a bar chart is negative, every bar starts at a vertical zero line in the middle of the track (4px, navy / off-white on ink, overhanging the track by 9px): increases run right, decreases run left, each side scaled to the largest absolute value. Without negative values bars stay left-aligned. Reason: a left-aligned −10,2 % was almost as long as +12,7 % — only the minus sign told them apart.
 
 ### Other options in the family
 
@@ -158,6 +164,11 @@ Column section, no padding. Text block first: `flex: 1; padding: 88px 76px`, cen
 **1f Vollbild mit Band** — photo over the whole canvas. Use only for a genuinely strong image and a short headline.
 Section `position: relative`, ink fallback ground, one full-bleed `image-slot`. The text sits in an absolutely positioned band: `left: 0; right: 0; bottom: 0; background: #151B20; padding: 64px 72px 76px`, column, `gap: 32px`, headline 96px with accent words, one 32px line. Sizes: 96 / 32. The band is **solid ink, never a gradient or a translucent scrim**, and it grows upward with the text — which is why the headline here stays under about 8 words, or it swallows the photo. If the copy needs more room, switch to `1e`.
 
+**1g Portrait** (added 25.09.2026, variant "B" of three mockups) — only for carousels about one person (side jobs), and then always: it is set, not drawn, so §6.1's rotation does not apply to it.
+Off-white ground. A steel-blue (`--accent`) field covers the right 420px at full height. The cut-out portrait (in color, see §9) stands on the field's left edge: `position: absolute; right: -90px; bottom: 0; height: 780px`, so the shoulders run off the bottom and right edges. Text column left, `width: 500px`, vertically centred, headline 80px navy with the highlight block, then the one 32px line. The person never reaches into the headline column. Sizes: 80 / 32. Portrait credit in the caption.
+
+**1h Portrait mirrored** and **1i Portrait on ink** (added 25.09.2026, after two person carousels in a row looked identical). Person carousels draw from `1g`/`1h`/`1i`, excluding the last two covers. 1h: the steel-blue field and the person on the left (`left: -90px`), text column right (`width: 470px`); the photo itself is never flipped, only the surfaces swap sides. 1i: ink ground, a steel-blue circle (860px) bottom-right, person in front of it cut at the right edge (`height: 820px`), headline top-left 96px with accent words, support line max 440px wide so it never runs into the head.
+
 ## 7. Slide 3 — den Begriff erklären
 
 Slide 3 explains the one term the whole story hangs on, at the level of a smart 15-year-old: headline `Was ist ein <Begriff>` with the term in the highlight block, one white card (led by the question badge, §3.6) of plain-language explanation ending in a concrete worked example ("Bei 1.500 € Zinsen … zahlst du 0 € Steuern"), then a second section `Warum überhaupt ändern?` as 2–3 arrow bullets giving the reasons the change was debated. No jargon, no nested clauses.
@@ -183,7 +194,13 @@ Slide 4 answers "was heißt das für dich". There is **no default layout: choose
 ## 9. Images
 
 - Photography only — real photos, black-and-white or desaturated news imagery.
+- **Exception, portraits of politicians** (added 25.09.2026): in color, the person cut out (background removed), showing head and upper body, not just the face. Fixed, hand-picked file per person from Wikimedia Commons; photographer and license go into the caption.
 - Cover: sized by the chosen variant (§6.3) — 430px column, 660px block, or full bleed. Later slides: `border-radius: 20–22px` frames, 270–290px tall, full column width.
+- **Party logos replace party names in headlines** (added 25.09.2026): in every h1 (cover and content slides) a party name becomes its logo, article included ("Großspende an die Grünen" → "Großspende an [logo]"). If the party ends the headline, the highlight/accent moves to the word before it, skipping a short word like "an". In running text the name stays spelled out. In charts (bars, seat-arc legend) a party always carries its logo. Logic in `render._mit_parteilogos`.
+- **Logos with their own surface** (Grüne: sunflower on dark green) are marked `"kachel": false` in `data/logos/logos.json` and appear without the white tile — the tile left a white rim around them. In headlines a party logo is 1.3em high on the baseline, so it reads as a word next to 96px capitals.
+- **Year comparison as small columns** (added 25.09.2026): where a data carousel has the same period in earlier years (donations 2024/2025/2026), the arrow-list slide opens with a row of 2–3 columns, 190px high, value above in Zilla Slab 32px, year below 24px; current year full navy, earlier years muted. Note under it names the period ("jeweils 1. Januar bis 23. September").
+- **Opposing camps** (lobby slide 3, added 25.09.2026): two blocks with an 8px left rule — steel blue for the first camp, text color for the second — each headed by the camp's demand in Zilla Slab 32px, organisations below with logo, name and one sentence; a hairline with "gegen" between them. No party or direction colors: the card does not say who is right.
+- **Logos** (added 25.09.2026): parties, companies, associations carry their logo where Wikimedia Commons has it under a free license (automatic lookup accepts SVG only). Always on a white tile, 56px high, width following the mark (max 170px), `border-radius: 12px` — many marks are dark and vanish on ink. Places: before a bar label, in the begriff badge (replacing the `?`), before an organisation name in a list. No logo: name only, never a monogram or placeholder. Credits in the caption.
 - Use a drop-target placeholder while unfilled. Never ship a hand-drawn SVG illustration or generated-looking graphic.
 
 ---

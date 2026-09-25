@@ -197,6 +197,19 @@ Aufbau:
    "hervorheben" ist der Index (ab 0) des Balkens, um den es in der Meldung
    geht - also der neue, beschlossene oder aktuelle Wert. Der wird farblich
    betont, die anderen bleiben grau als Vergleich.
+   "wertung" - aus Sicht der meisten Haushalte im Alltag, und NUR fuer
+   gemessene Werte (Statistik), nie fuer die Regeln eines Gesetzes
+   (Bussgeld, Steuersatz, Freibetrag: dort immer "neutral"):
+   - "hoch_gut": hoeher ist besser (Loehne, Renten, Lebenserwartung,
+     Kita-Plaetze, Beschaeftigung - und Haeuser- und Wohnungspreise: sie
+     sind der Wert des Eigentums, steigend gilt als gut, fallend als
+     schlecht). Anstieg gruen, Rueckgang rot.
+   - "hoch_schlecht": hoeher ist fuer die meisten schlechter
+     (Verbraucherpreise, Inflation, Mieten, Energiekosten, Unfaelle,
+     Verkehrstote, Straftaten, Arbeitslosigkeit). Anstieg rot, Rueckgang
+     gruen.
+   - "neutral": keine klare Alltagsrichtung (Bevoelkerung, Exporte,
+     Zuwanderung, Ausgaben des Staates, Ernte). Im Zweifel "neutral".
    Steht unter "Kaufkraft" etwas anderes als "keine", dann gehoert ein
    zusaetzlicher Balken ans ENDE des Diagramms: Label "<Jahr> in heutiger
    Kaufkraft", "wert" ist der dort genannte Gegenwert - Ziffer fuer Ziffer
@@ -381,6 +394,7 @@ Antworte NUR mit JSON:
             "balken": [{{"label": "...", "wert": 1200}},
                        {{"label": "1955 in heutiger Kaufkraft", "wert": 1100}}],
             "hervorheben": 1,
+            "wertung": "neutral",
             "hinweis": "optionale Einordnung, max 90 Zeichen"}},
   "context": ["Absatz 1", "Absatz 2", "Absatz 3"],
   "begriff": {{"titel": "Was ist ein Freibetrag",
@@ -414,7 +428,8 @@ Recherche-Erklaerung: {erklaerung}
 Recherche-Zahlen: {zahlen}
 Kaufkraft: {kaufkraft}
 Betroffene: {betroffene}
-Alltagswirkung: {alltagswirkung}"""
+Alltagswirkung: {alltagswirkung}
+{sonderregel}"""
 
 JUDGE_PROMPT = """Du bist Faktenpruefer. Du pruefst NICHT den Stil, nur die
 Haltbarkeit der Aussagen. Sei streng: im Zweifel durchfallen lassen.
@@ -745,6 +760,341 @@ def select_topics(items: list, anzahl: int | None = None) -> list:
     return gewaehlt
 
 
+# Eine Statistik ist keine Entscheidung: "Warum ueberhaupt aendern?" hat
+# darauf keine Antwort (Abstimmung 25.09.2026). Die zwei Punkte unter der
+# Begriffskarte geben stattdessen mehr Zusammenhang aus der Meldung.
+STATISTIK_REGEL = """
+SONDERREGEL - diese Meldung ist eine Statistik, keine Entscheidung:
+- "begriff.warum" sind KEINE Gruende fuer eine Aenderung. Es sind 2 Punkte
+  MEHR ZUSAMMENHANG aus dem Quelltext, je max 110 Zeichen: Unterschiede
+  zwischen Regionen (z. B. Metropolen gegen laendliche Kreise), Gruppen
+  (Neubau gegen Bestand, Frauen gegen Maenner) oder ein laengerer
+  Vergleich, den die Meldung nennt. Mit Zahlen aus dem Quelltext. Auf der
+  Karte stehen sie unter "Genauer hingeschaut".
+- "chart.wertung": setze "hoch_gut" oder "hoch_schlecht", wo die Regel
+  oben eine Richtung hergibt. Haeuser- und Wohnungspreise: "hoch_gut";
+  Verbraucherpreise und Mieten: "hoch_schlecht".
+"""
+
+
+DESTATIS_PROMPT = """Unten stehen Pressemitteilungen des Statistischen
+Bundesamtes. Markiere jede, die den ALLTAG normaler Leute beruehrt: was sie
+zahlen (Preise, Mieten, Energie, Lebensmittel), was sie verdienen (Loehne,
+Renten, Arbeitsmarkt), wie sie wohnen, sich bewegen, gesund bleiben, lernen,
+Familien gruenden - oder was im Land sichtbar geschieht (Unfaelle,
+Bevoelkerung, Wetterfolgen).
+
+Nicht markieren: Branchen- und Aussenhandelsdetails ohne Folge fuer
+Verbraucher (Pkw-Exporte, Erzeugerpreise einzelner Dienstleistungen),
+Nischenstatistik (Kirschenernte, Schlachtmengen), reine
+Methoden- oder Terminhinweise.
+
+Antworte NUR mit JSON: {{"alltag": [0, 3]}}
+
+Meldungen:
+{items}"""
+
+
+def destatis_auswahl(items: list) -> list:
+    """Die Destatis-Meldungen mit Alltagsbezug, in Feed-Reihenfolge.
+
+    Die Items kommen neueste zuerst; die Reihenfolge bleibt erhalten, damit
+    die juengste passende Meldung vorn steht. Gefragt wird nur ja/nein je
+    Meldung - die Rangfolge ist das Datum, nicht der Geschmack des Modells.
+    """
+    if not items:
+        return []
+    listing = "\n".join(f"[{i}] {it['title']} - {it['text'][:200]}"
+                        for i, it in enumerate(items))
+    try:
+        resp = client.messages.create(
+            model=config.MODEL_RANK, max_tokens=500,
+            messages=[{"role": "user",
+                       "content": DESTATIS_PROMPT.format(items=listing)}])
+        data = _json_from(_text_block(resp))
+    except Exception as exc:
+        print(f"  ! Destatis-Auswahl fehlgeschlagen: {exc}")
+        return []
+    markiert = {i for i in data.get("alltag", []) or []
+                if isinstance(i, int) and 0 <= i < len(items)}
+    for i, it in enumerate(items):
+        print(f"    {'ja  ' if i in markiert else 'nein'} {it['title'][:66]}")
+    return [it for i, it in enumerate(items) if i in markiert]
+
+
+GESETZ_PROMPT = """Ein Gesetz aus dem Bundestag, unten Titel und
+Zusammenfassung aus der Parlamentsdatenbank.
+
+1. "kurzname": der kurze Name, unter dem das Gesetz laeuft, hoechstens 40
+   Zeichen, im Nominativ (z. B. "Gebaeudemodernisierungsgesetz"). Er MUSS
+   woertlich in Titel oder Zusammenfassung vorkommen. Gibt es keinen, nimm
+   das erste zusammengesetzte Wort auf "-gesetz" aus dem Titel.
+2. "satz": EIN Satz, was sich durch das Gesetz KONKRET aendert, fuer Leute
+   ohne Vorwissen, hoechstens 160 Zeichen: wer darf, muss oder bekommt jetzt
+   was? Nicht "Das Gesetz aendert das X-Gesetz" - das sagt der Titel schon.
+   Beginne mit dem Gesetzesnamen ("Das Umwelt-Rechtsbehelfsgesetz regelt
+   kuenftig ..."). Nur was in Titel oder Zusammenfassung steht, keine
+   Wertung.
+
+Antworte NUR mit JSON: {{"kurzname": "...", "satz": "..."}}
+
+Titel: {title}
+Zusammenfassung: {text}"""
+
+
+GESETZ_SATZ_MAX = 200
+
+
+def _gesetz_aus_titel(titel: str) -> str:
+    """Das erste Kompositum auf "-gesetz" im Titel, im Nominativ:
+    "... des Gebaeudeenergiegesetzes, ..." -> "Gebaeudeenergiegesetz"."""
+    for wort in re.findall(r"[\w-]+gesetz(?:es|s)?\b", titel):
+        if wort.lower() in ("gesetz", "gesetzes"):
+            continue
+        return re.sub(r"(?<=gesetz)(es|s)$", "", wort)
+    return ""
+
+
+def gesetz_kurz(item: dict) -> dict | None:
+    """Kurzname und Ein-Satz-Beschreibung eines DIP-Gesetzes.
+
+    Der Kurzname geht auf die Schlagzeile - er wird deshalb gegen den
+    Quelltext geprueft, nicht dem Modell geglaubt. Das Modell kennt oft den
+    gelaeufigen Namen ("Gebaeudemodernisierungsgesetz"), der im DIP-Text
+    gar nicht steht; dann gilt das erste "-gesetz" aus dem Titel.
+
+    Der Satz haelt sich oft nicht an die Laenge. Er wird nicht gekuerzt - ein
+    abgeschnittener Satz auf einer Karte ist schlimmer als keiner -, sondern
+    einmal neu angefordert.
+    """
+    quelle = f"{item['title']} {item['text']}".lower()
+    einwand = ""
+    for _ in range(2):
+        try:
+            resp = client.messages.create(
+                model=config.MODEL_RANK, max_tokens=400,
+                messages=[{"role": "user", "content": GESETZ_PROMPT.format(
+                    title=item["title"], text=item["text"][:3000]) + einwand}])
+            data = _json_from(_text_block(resp))
+        except Exception as exc:
+            print(f"    ! Gesetzesname nicht ermittelt: {exc}")
+            return None
+        kurz = umlaute_reparieren(str(data.get("kurzname", "")).strip())
+        satz = umlaute_reparieren(str(data.get("satz", "")).strip())
+
+        # Der Titel steht oft im Genitiv ("des Gebaeudeenergiegesetzes").
+        if not kurz or not any(kurz.lower() + endung in quelle
+                               for endung in ("", "es", "s")):
+            ersatz = _gesetz_aus_titel(item["title"])
+            print(f"    - Kurzname '{kurz}' steht nicht in der Quelle, "
+                  f"nehme '{ersatz or '-'}' aus dem Titel")
+            if not ersatz:
+                return None
+            satz = satz.replace(kurz, ersatz) if kurz else satz
+            kurz = ersatz
+        if satz and len(satz) <= GESETZ_SATZ_MAX:
+            return {"kurzname": kurz, "satz": satz}
+        print(f"    - Satz zu lang ({len(satz)} Zeichen), zweiter Versuch")
+        einwand = (f"\n\nDein letzter Satz hatte {len(satz)} Zeichen. "
+                   f"Hoechstens 160 - nenne nur die wichtigste Aenderung.")
+    return None
+
+
+# --- Datenkarussells: Saetze aus Registertexten -----------------------------
+#
+# Zwei Stellen, an denen ein Datenkarussell doch ein Modell braucht: was eine
+# Organisation zu einem Gesetz wollte (aus ihrer Stellungnahme) und was eine
+# spendende Organisation ist (aus Lobbyregister und Wikipedia). Beides wird
+# zweimal geprueft: hier mechanisch (jede Zahl und die tragenden Woerter
+# stehen in der Quelle), danach im Faktencheck gegen denselben Auszug.
+
+def _belegt(satz: str, quelle: str, anteil: float = 0.6) -> bool:
+    """Jede Zahl des Satzes steht in der Quelle, und die meisten seiner
+    Inhaltswoerter auch (auf sechs Buchstaben gekuerzt, damit "fordert"
+    und "Forderung" zusammenkommen)."""
+    quelle_n = " ".join(quelle.lower().split())
+    for zahl in re.findall(r"\d[\d.,]*\d|\d", satz):
+        if zahl.rstrip(".,") not in quelle_n:
+            return False
+    woerter = [w[:6] for w in re.findall(r"[a-zäöüß]{7,}", satz.lower())
+               if w not in {"fordert", "kritisiert", "begrüßt", "verlangt",
+                            "organisation", "gesetzes", "gesetz"}]
+    if not woerter:
+        return True
+    return sum(w in quelle_n for w in woerter) / len(woerter) >= anteil
+
+
+LOBBY_PROMPT = """Organisationen haben im Lobbyregister des Bundestages
+Lobbyarbeit zum {gesetz} gemeldet. Unten je Organisation ihre eigene
+Beschreibung des Vorhabens und, wo vorhanden, ein Auszug ihrer Stellungnahme.
+
+Schreib je Organisation EINEN Satz, hoechstens 110 Zeichen, was sie zu diesem
+Gesetz fordert, kritisiert oder begruesst. Beginne mit dem Verb: "Fordert
+...", "Kritisiert ...", "Begrüßt ...", "Will ...". Konkret: welche Regel,
+welche Zahl, welche Gruppe - aber in Worten, die man ohne Vorwissen
+versteht: keine Paragrafen ("§ 71k GEG"), keine Gesetzesabkuerzungen
+("CO2KostAufG"), keine Programmkuerzel ohne Erklaerung ("BEG"). Sag, was
+die Regel tut ("die Pflicht, Heizkosten fuer Biogas einzeln auszuweisen").
+Nur was im Text steht. Keine Wertung, keine Vermutung ueber
+Motive. Ist keine klare Position zu diesem Gesetz erkennbar, lass die
+Organisation weg. Schreib mit echten Umlauten (ä, ö, ü, ß).
+
+Danach "lager": Teile die Organisationen mit Position in ZWEI Lager, die
+sich bei diesem Gesetz gegenueberstehen - nach dem, was sie wollen, nicht
+nach ihrer Art. Beispiel GKV-Gesetz: "Wollen Beitragszahler entlasten"
+gegen "Wollen hoehere Preise und Verguetungen". Jeder Titel hoechstens 40
+Zeichen, beschreibend, ohne Wertung, beginnt mit "Wollen" oder "Gegen".
+Jede Organisation hoechstens in einem Lager. Gibt es keinen echten
+Gegensatz (alle wollen dasselbe), gib "lager": [].
+
+Antworte NUR mit JSON:
+{{"positionen": [{{"nr": 1, "satz": "..."}}],
+  "lager": [{{"titel": "...", "nr": [1, 3]}}, {{"titel": "...", "nr": [2]}}]}}
+
+{bloecke}"""
+
+
+def lobby_positionen(gesetz: str, orgs: list) -> tuple:
+    """({nr: satz}, lager) fuer die Organisationen, deren Position belegt ist.
+
+    `lager` sind zwei Gruppen [{"titel", "nr": [...]}], die sich
+    gegenueberstehen - oder [], wenn das Modell keinen Gegensatz sieht oder
+    ein Lager nach der Belegpruefung leer waere.
+
+    `orgs` sind Dicts mit "name" und "quelle" (Beschreibung plus
+    Stellungnahme-Auszug) - genau der Text, gegen den auch der Faktencheck
+    prueft."""
+    bloecke = "\n\n".join(f"[{i}] {o['name']}\n{o['quelle']}"
+                          for i, o in enumerate(orgs, 1))
+    try:
+        resp = client.messages.create(
+            model=config.MODEL_DRAFT, max_tokens=config.DATEN_MAX_TOKENS,
+            messages=[{"role": "user", "content": LOBBY_PROMPT.format(
+                gesetz=gesetz, bloecke=bloecke)}])
+        data = _json_from(_text_block(resp))
+    except Exception as exc:
+        print(f"    ! Lobby-Positionen nicht ermittelt: {exc}")
+        return {}, []
+    ergebnis = {}
+    for p in data.get("positionen", []) or []:
+        try:
+            nr = int(p.get("nr"))
+            satz = umlaute_reparieren(str(p.get("satz", "")).strip())
+            org = orgs[nr - 1]
+        except (TypeError, ValueError, IndexError):
+            continue
+        if not satz or len(satz) > 160:
+            print(f"    - Position {org['name']}: zu lang ({len(satz)})")
+        # Alltagsworte statt Paragrafen: etwas weniger Woerter decken sich
+        # dann mit der Quelle. Die Zahlen muessen weiter alle stimmen.
+        elif not _belegt(satz, org["quelle"], anteil=0.5):
+            print(f"    - Position {org['name']} nicht belegt: {satz}")
+        else:
+            ergebnis[nr] = satz
+    lager = []
+    for l in data.get("lager", []) or []:
+        titel = umlaute_reparieren(str(l.get("titel", "")).strip())
+        nrn = [n for n in (l.get("nr") or []) if isinstance(n, int) and n in ergebnis]
+        if titel and len(titel) <= 50 and nrn:
+            lager.append({"titel": titel, "nr": nrn})
+    if len(lager) != 2 or set(lager[0]["nr"]) & set(lager[1]["nr"]):
+        lager = []
+    return ergebnis, lager
+
+
+GESETZ_KARTE_PROMPT = """Ein beschlossenes Gesetz, unten Titel und
+Zusammenfassung aus der Parlamentsdatenbank des Bundestages. Schreib eine
+Erklaerkarte fuer einen klugen Fuenfzehnjaehrigen:
+
+- "saetze": GENAU 2 kurze Saetze, je hoechstens 130 Zeichen: was das Gesetz
+  regelt und was sich konkret aendert. Ohne Fachsprache, ohne Paragrafen.
+- "beispiel": ein konkreter Fall, hoechstens 130 Zeichen. Zahlen NUR, wenn
+  sie im Text stehen - erfinde keine.
+- "warum": GENAU 2 Gruende, je hoechstens 110 Zeichen. Sie stehen unter der
+  Frage "Warum ueberhaupt aendern?": welches Problem gab es, was soll das
+  Gesetz bewirken - so, wie der Text es begruendet. Kein Einwand, keine
+  Wertung.
+Nur was im Text steht. Schreib mit echten Umlauten (ä, ö, ü, ß).
+
+Antworte NUR mit JSON:
+{{"saetze": ["...", "..."], "beispiel": "...", "warum": ["...", "..."]}}
+
+Titel: {title}
+Zusammenfassung: {text}"""
+
+
+def gesetz_karte(item: dict) -> dict | None:
+    """Begriffskarte "Was das Gesetz aendert" fuer das Lobby-Karussell
+    (Abstimmung 25.09.2026: wie Slide 3 bei DIP). Jeder Satz wird gegen den
+    DIP-Text geprueft; einmal neu angefordert, dann None."""
+    quelle = f"{item['title']} {item['text']}"
+    einwand = ""
+    for _ in range(2):
+        try:
+            resp = client.messages.create(
+                model=config.MODEL_DRAFT, max_tokens=config.DATEN_MAX_TOKENS,
+                messages=[{"role": "user", "content": GESETZ_KARTE_PROMPT.format(
+                    title=item["title"], text=item["text"][:4000]) + einwand}])
+            karte = umlaute_reparieren(_json_from(_text_block(resp)))
+        except Exception as exc:
+            print(f"    ! Gesetzeskarte nicht ermittelt: {exc}")
+            return None
+        saetze = [str(x) for x in karte.get("saetze", [])]
+        warum = [str(x) for x in karte.get("warum", [])]
+        beispiel = str(karte.get("beispiel", "")).strip()
+        alle = saetze + warum + ([beispiel] if beispiel else [])
+        # Nur die Zahlen mechanisch: die Karte soll Alltagsworte benutzen
+        # ("Aerzte, Kliniken"), der DIP-Text sagt "Leistungserbringer" - eine
+        # Wortpruefung verwarf deshalb jede gute Fassung. Den Inhalt prueft
+        # der Faktencheck gegen denselben Text.
+        falsch = [x for x in alle if len(x) > 150 or not _belegt(x, quelle, anteil=0)]
+        if len(saetze) == 2 and len(warum) == 2 and not falsch:
+            return {"saetze": saetze, "beispiel": beispiel, "warum": warum}
+        print(f"    - Gesetzeskarte verworfen: {falsch or 'Form'}")
+        einwand = ("\n\nDein letzter Versuch enthielt Aussagen, die nicht im Text "
+                   "stehen, oder war zu lang. Bleib naeher am Text.")
+    return None
+
+
+SPENDER_PROMPT = """Unten Angaben zu der Organisation "{name}": ihr
+Eintrag im Lobbyregister des Bundestages und, wenn vorhanden, der Anfang des
+Wikipedia-Artikels.
+
+Schreib GENAU 2 kurze Saetze, je hoechstens 150 Zeichen, fuer Leute ohne
+Vorwissen: Was ist diese Organisation (Art, Sitz, Groesse) und was macht sie
+(Zweck, Themen)? Der erste Satz beginnt mit dem Namen. Nur was in den Angaben
+steht; Zahlen nur, wenn sie dort stehen. Nichts darueber, warum sie spendet
+oder was sie sich davon verspricht, keine Wertung. Schreib mit echten
+Umlauten (ä, ö, ü, ß).
+
+Antworte NUR mit JSON: {{"saetze": ["...", "..."]}}
+
+{quelle}"""
+
+
+def spender_portraet(name: str, quelle: str) -> list:
+    """Zwei belegte Saetze ueber eine spendende Organisation, oder []."""
+    einwand = ""
+    for _ in range(2):
+        try:
+            resp = client.messages.create(
+                model=config.MODEL_DRAFT, max_tokens=config.DATEN_MAX_TOKENS,
+                messages=[{"role": "user", "content": SPENDER_PROMPT.format(
+                    name=name, quelle=quelle[:5000]) + einwand}])
+            saetze = [umlaute_reparieren(str(s).strip())
+                      for s in _json_from(_text_block(resp)).get("saetze", [])]
+        except Exception as exc:
+            print(f"    ! Spenderportraet nicht ermittelt: {exc}")
+            return []
+        falsch = [s for s in saetze if len(s) > 170 or not _belegt(s, quelle)]
+        if len(saetze) == 2 and not falsch:
+            return saetze
+        print(f"    - Spenderportraet verworfen: {falsch or saetze}")
+        einwand = ("\n\nDein letzter Versuch enthielt Aussagen, die nicht in "
+                   "den Angaben stehen, oder war zu lang. Bleib naeher am Text.")
+    return []
+
+
 # --- Umlaute -------------------------------------------------------------
 #
 # Das Modell driftet in die Umschrift ab: in einem Lauf schrieb dasselbe
@@ -922,6 +1272,7 @@ def compose(item: dict, recherche: dict, einwand: str = "") -> dict | None:
                 bereich=item.get("bereich") or "unbekannt",
                 betroffene=recherche.get("betroffene", "") or "unbekannt",
                 alltagswirkung=recherche.get("alltagswirkung", "") or "unbekannt",
+                sonderregel=STATISTIK_REGEL if item.get("art") == "statistik" else "",
                 min_bars=config.CHART_MIN_BARS, max_bars=config.CHART_MAX_BARS)}],
         ) as stream:
             resp = stream.get_final_message()
@@ -1576,15 +1927,23 @@ def judge_slides(slides: dict, item: dict,
     return True, ""
 
 
-def build_carousels(items: list, recherche_fn, anzahl: int | None = None) -> list:
-    """Kompletter Durchlauf: auswaehlen, recherchieren, schreiben, pruefen."""
+def build_carousels(items: list, recherche_fn, anzahl: int | None = None,
+                    themen: list | None = None) -> list:
+    """Kompletter Durchlauf: auswaehlen, recherchieren, schreiben, pruefen.
+
+    `themen` heisst: die Auswahl ist schon getroffen (Destatis waehlt nach
+    eigener Regel, siehe destatis_auswahl) - dann wird nur noch geschrieben
+    und geprueft. Die Reihenfolge ist die Rangfolge, alles hinter `anzahl`
+    ist Reserve.
+    """
     anzahl = anzahl or config.CAROUSELS_PER_RUN
-    print("Themen werden ausgewaehlt ...")
-    # Mehr waehlen als gebraucht: faellt ein Thema durch die Pruefung, rueckt
-    # ein Ersatz aus DERSELBEN Quelle nach. Vorher kostete ein Durchfaller
-    # der Quelle ihren Slot, und der Lauf fiel auf eine schwaechere Quelle
-    # durch, obwohl noch neun beschlossene Gesetze bereitlagen.
-    themen = select_topics(items, anzahl + config.THEMEN_RESERVE)
+    if themen is None:
+        print("Themen werden ausgewaehlt ...")
+        # Mehr waehlen als gebraucht: faellt ein Thema durch die Pruefung,
+        # rueckt ein Ersatz aus DERSELBEN Quelle nach. Vorher kostete ein
+        # Durchfaller der Quelle ihren Slot, obwohl noch neun beschlossene
+        # Gesetze bereitlagen.
+        themen = select_topics(items, anzahl + config.THEMEN_RESERVE)
     if not themen:
         print("  = kein alltagsrelevantes Thema gefunden")
         return []

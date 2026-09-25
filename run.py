@@ -26,39 +26,34 @@ import cover
 import instagram
 import llm
 import notify
-import profile_mode
 import render
 import research
 import sources
+import weitere
 
 
 def main() -> int:
     seen = sources.load_seen()
     carousels = []
 
-    # Stufenweise: erst die beste Quelle, und nur wenn die nichts Sende-
-    # faehiges hergibt, die naechste. Entscheidend ist dabei nicht, ob eine
-    # Quelle Items liefert, sondern ob daraus ein Karussell wird, das beide
-    # Pruefungen besteht - eine Quelle mit 200 Eintraegen, die alle
-    # durchfallen, hat nichts beigetragen.
-    for name, fetcher, bauart in config.QUELLEN_STUFEN:
-        fehlend = config.CAROUSELS_PER_RUN - len(carousels)
-        if fehlend <= 0:
-            break
+    # Feste Rollen: Karussell 1 ist ein beschlossenes Gesetz aus DIP,
+    # Karussell 2 kommt aus einer zufaellig gezogenen weiteren Kategorie
+    # (weitere.py). Liefert DIP nichts, kommen beide aus zwei verschiedenen
+    # Kategorien - ein Tag ohne Gesetz ist kein Tag ohne Post.
+    print()
+    print("DIP: beschlossene Gesetze ...")
+    gesetze = sources.fetch_dip()
+    items = sources.prefilter(gesetze, seen)
+    if items:
+        carousels += llm.build_carousels(items, research.enrich, 1)
+    print(f"  = DIP: {len(carousels)} Karussell(s)")
 
-        print()
-        print(f"Stufe '{name}' ({fehlend} Karussell(s) gesucht) ...")
-        items = sources.collect_stufe(fetcher, seen)
-        if not items:
-            print("  = keine Items - weiter zur naechsten Stufe")
-            continue
-
-        if bauart == "profil":
-            neue = profile_mode.build(items, fehlend)
-        else:
-            neue = llm.build_carousels(items, research.enrich, fehlend)
-        carousels += neue
-        print(f"  = Stufe '{name}': {len(neue)} Karussell(s)")
+    # Das Lobby-Karussell nimmt dieselben Gesetze - aber nicht das, ueber das
+    # Karussell 1 heute schon berichtet.
+    kontext = {"dip": gesetze,
+               "heute": {c["item"]["id"] for c in carousels}}
+    carousels += weitere.baue(config.CAROUSELS_PER_RUN - len(carousels),
+                              seen, kontext)
 
     if not carousels:
         notify.send_error("Keine Quelle hat ein sendefertiges Karussell "

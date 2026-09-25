@@ -1,12 +1,16 @@
-"""Holt Rohmaterial aus RSS-Feeds und der Bundestag-DIP-API."""
+"""Holt Rohmaterial: Bundestag-DIP, Destatis, Lobbyregister, Parteispenden,
+abgeordnetenwatch. Die Eigenheiten jeder Quelle stehen in QUELLEN.md."""
 
+import csv
 import hashlib
 import html
+import io
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 import os
 import re
-from datetime import datetime, timedelta, timezone
+import time
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import feedparser
@@ -144,66 +148,122 @@ def ensure_volltext(item: dict) -> dict:
     return item
 
 
-def _fetch_feed_list(feeds: list) -> list:
-    """Liest eine Liste von RSS-Feeds (gleiche Form wie RSS_SOURCES). Ein
-    toter Feed stoppt den Lauf nicht. Wird von fetch_rss() und
-    fetch_bundespuls() geteilt, da beide dieselbe Feed-Struktur haben."""
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=config.LOOKBACK_HOURS)
+def fetch_destatis() -> list:
+    """Die Pressemitteilungen aus dem Destatis-Feed, neueste zuerst.
+
+    Der Feed haelt nur die letzten zehn - kein Zeitfenster noetig, das ist
+    ohnehin weniger als eine Woche. Geliefert wird nur der Teaser; den
+    sauberen Volltext samt Grafikdaten holt destatis_anreichern(), und zwar
+    erst fuer die ausgewaehlten Meldungen, nicht fuer alle zehn.
+    """
+    try:
+        resp = requests.get(config.DESTATIS_FEED, headers=UA, timeout=20)
+        resp.raise_for_status()
+        feed = feedparser.parse(resp.content)
+    except Exception as exc:
+        print(f"  ! Destatis nicht erreichbar: {exc}")
+        return []
+
     items = []
-
-    for src in feeds:
-        try:
-            resp = requests.get(src["url"], headers=UA, timeout=20)
-            resp.raise_for_status()
-            feed = feedparser.parse(resp.content)
-        except Exception as exc:
-            print(f"  ! {src['name']} nicht erreichbar: {exc}")
-            continue
-
-        for entry in feed.entries:
-            published = entry.get("published_parsed") or entry.get("updated_parsed")
-            if published:
-                when = datetime(*published[:6], tzinfo=timezone.utc)
-                if when < cutoff:
-                    continue
-            else:
-                when = datetime.now(timezone.utc)
-
-            body = _clean(entry.get("summary", "")) or _clean(entry.get("title", ""))
-            link = entry.get("link", "")
-            if len(body) < config.FULLTEXT_MIN_CHARS and link:
-                full = _fetch_full_text(link)
-                if full and len(full) > len(body):
-                    body = full
-
-            items.append({
-                "id": _hash(entry.get("link", "") + entry.get("title", "")),
-                "source": src["name"],
-                "weight": src["weight"],
-                "tier": src.get("tier", "kern"),
-                "title": _clean(entry.get("title", "")),
-                "text": body[:config.FULLTEXT_MAX_CHARS],
-                "url": entry.get("link", ""),
-                "date": when.strftime("%Y-%m-%d"),
-            })
-        print(f"  + {src['name']}: {len(feed.entries)} Eintraege")
-
+    for entry in feed.entries:
+        published = entry.get("published_parsed") or entry.get("updated_parsed")
+        when = (datetime(*published[:6], tzinfo=timezone.utc) if published
+                else datetime.now(timezone.utc))
+        link = entry.get("link", "")
+        items.append({
+            "id": _hash(link + entry.get("title", "")),
+            "source": "Statistisches Bundesamt",
+            "weight": 3,
+            "tier": "kern",
+            "title": _clean(entry.get("title", "")),
+            "text": _clean(entry.get("summary", "")),
+            "url": link,
+            "date": when.strftime("%Y-%m-%d"),
+            "zeit": when.isoformat(),
+        })
+    # Neueste zuerst: die Auswahl nimmt die juengste alltagsnahe Meldung.
+    items.sort(key=lambda i: i["zeit"], reverse=True)
+    print(f"  + Destatis: {len(items)} Pressemitteilungen")
     return items
 
 
-def fetch_rss() -> list:
-    """Liest die klassischen Behoerden-RSS-Feeds aus RSS_SOURCES."""
-    return _fetch_feed_list(config.RSS_SOURCES)
+def _destatis_csv_saetze(csv_text: str) -> str:
+    """Die Daten hinter einer Destatis-Grafik als Saetze fuer den Quelltext.
+
+    Dieselbe Bauart wie abstimmung_als_text(): die Saetze entstehen
+    deterministisch aus der amtlichen Datei, damit die Belegpruefung die
+    Zahlen woertlich wiederfindet. Leere Zellen sind noch nicht erhobene
+    Zeitraeume (z. B. die Monate nach dem aktuellen) - die fallen weg.
+    """
+    zeilen = [z for z in csv.reader(io.StringIO(csv_text.lstrip("﻿")),
+                                    delimiter=";") if any(c.strip() for c in z)]
+    if len(zeilen) < 2:
+        return ""
+    kopf = [k.strip() for k in zeilen[0]]
+    saetze = []
+    for zeile in zeilen[1:]:
+        werte = [f"{kopf[i]}: {w.strip()}" for i, w in enumerate(zeile[1:], 1)
+                 if i < len(kopf) and w.strip()]
+        if werte:
+            saetze.append(f"{zeile[0].strip()} - {', '.join(werte)}.")
+    return " ".join(saetze)
 
 
-def fetch_bundespuls() -> list:
-    """Liest die Bundespuls-Aggregator-Feeds (Vorgaenge, Abstimmungen,
-    Plenarprotokolle). Ergaenzt DIP/AOW um eine zweite, unabhaengige
-    Quelle - Ueberschneidungen sind moeglich, das Vorfilter/Ranking
-    filtert nicht inhaltlich auf Dopplungen, nur auf id."""
-    if not config.BUNDESPULS_ENABLED:
-        return []
-    return _fetch_feed_list(config.BUNDESPULS_FEEDS)
+def destatis_anreichern(item: dict) -> dict:
+    """Volltext und Grafikdaten einer Destatis-Pressemitteilung.
+
+    Der Text steht zwischen "Pressemitteilung Nr. ..." und "Kontakt fuer
+    weitere Auskuenfte". Alles davor und danach ist Seitenrahmen ("Seite
+    teilen", Navigation, Kontaktblock) - _fetch_full_text nahm das mit.
+
+    Rund sechs von zehn Meldungen haben eine eingebettete Grafik, deren Daten
+    als CSV an der Seite haengen (data-chart-csvurl). Das sind die amtlichen
+    Zahlen als Zeitreihe; sie werden als Saetze angehaengt, damit das Modell
+    das Diagramm daraus bauen kann und die Belegpruefung sie findet.
+    """
+    try:
+        resp = requests.get(item["url"], headers=UA, timeout=20)
+        resp.raise_for_status()
+    except Exception as exc:
+        print(f"    ! Destatis-Seite nicht ladbar: {exc}")
+        return item
+    seite = resp.text
+
+    nr = re.search(r"Pressemitteilung Nr\.\s*(\d+)", seite)
+    start = seite.find("Pressemitteilung Nr.")
+    ende = seite.find("Kontakt für weitere Auskünfte", start)
+    if start > 0:
+        teil = seite[start:ende if ende > start else None]
+        teil = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", teil,
+                      flags=re.IGNORECASE | re.DOTALL)
+        text = _clean(html.unescape(teil))
+        text = re.sub(r"\s*Lädt\.\.\.\s*", " ", text).strip()
+        if len(text) > len(item.get("text", "")):
+            item["text"] = text
+
+    daten = []
+    for url in re.findall(r'data-chart-csvurl="([^"]+)"', seite)[:2]:
+        url = html.unescape(url)
+        if url.startswith("/"):
+            url = "https://www.destatis.de" + url
+        try:
+            antwort = requests.get(url, headers=UA, timeout=20)
+            antwort.raise_for_status()
+            saetze = _destatis_csv_saetze(antwort.content.decode("utf-8", "replace"))
+        except Exception as exc:
+            print(f"    ! Destatis-Grafikdaten nicht ladbar: {exc}")
+            continue
+        if saetze:
+            daten.append("Daten der Grafik zur Pressemitteilung: " + saetze)
+    if daten:
+        item["text"] += "\n\n" + "\n\n".join(daten)
+
+    if nr:
+        item["source"] = f"Statistisches Bundesamt, Pressemitteilung Nr. {nr.group(1)}"
+    item["text"] = item["text"][:config.FULLTEXT_MAX_CHARS]
+    print(f"    + Destatis: {len(item['text'])} Zeichen, "
+          f"{len(daten)} Grafik(en) mit Daten")
+    return item
 
 
 def _dip_get(pfad: str, **params):
@@ -252,7 +312,7 @@ def _dip_text(vorgang: dict) -> str:
     return " ".join(satz)
 
 
-def fetch_dip() -> list:
+def fetch_dip(tage: int | None = None) -> list:
     """Entschiedene Gesetzgebungsvorgaenge aus dem DIP des Bundestages.
 
     Frueher wurden hier Drucksachen der letzten 30 Stunden geholt und als
@@ -267,14 +327,27 @@ def fetch_dip() -> list:
         return []
 
     start = (datetime.now(timezone.utc)
-             - timedelta(days=config.GESETZE_LOOKBACK_DAYS)).date()
-    data = _dip_get("vorgang", **{"f.vorgangstyp": config.DIP_VORGANGSTYP,
-                                  "f.datum.start": start.isoformat()})
-    if data is None:
-        return []
+             - timedelta(days=tage or config.GESETZE_LOOKBACK_DAYS)).date()
+    # DIP liefert hoechstens 100 Vorgaenge je Seite. Ueber drei Wochen reicht
+    # das meist, ueber drei Monate nicht (157 Vorgaenge am 25.09.2026) - ohne
+    # Blaettern fielen Gesetze still weg. Blaettern per cursor, bis er sich
+    # nicht mehr aendert.
+    vorgaenge, cursor = [], None
+    for _ in range(20):
+        params = {"f.vorgangstyp": config.DIP_VORGANGSTYP,
+                  "f.datum.start": start.isoformat()}
+        if cursor:
+            params["cursor"] = cursor
+        data = _dip_get("vorgang", **params)
+        if data is None:
+            break
+        vorgaenge += data.get("documents", [])
+        if not data.get("documents") or data.get("cursor") in (None, cursor):
+            break
+        cursor = data.get("cursor")
 
     items = []
-    for vorgang in data.get("documents", []):
+    for vorgang in vorgaenge:
         # Noch nicht entschieden heisst: es gibt nichts zu berichten ausser
         # dem Verfahren selbst - und genau das will dieser Ueberblick nicht.
         if vorgang.get("beratungsstand") not in config.DIP_BESCHLOSSEN:
@@ -403,513 +476,294 @@ def abstimmung_als_text(treffer: dict) -> str:
     return " ".join(teile)
 
 
-def _aow_current_legislature(parliament_id: int) -> int | None:
-    """Loest die aktuelle Wahlperioden-Id auf (aendert sich nach jeder Wahl).
+# --- Lobbyregister -----------------------------------------------------------
+#
+# Zwei Zugaenge (Einzelheiten in QUELLEN.md): die Suche des Web-Frontends
+# (sucheJson) und die API v2. Die Suche liefert Zaehler und kennt die
+# Filter, die API den vollen Eintrag mit Personen und Regelungsvorhaben.
 
-    Die Poll-API filtert nicht mehr direkt nach Parlament, sondern nach
-    field_legislature (Wahlperiode). Diese Id holen wir uns dynamisch, damit
-    der Code nicht nach jeder Bundestagswahl von Hand angepasst werden muss.
+def lobby_suche(**params) -> list:
+    """sucheJson mit Suchbegriff und/oder Filtern.
+
+    Filter nur in der Form "filter[name][wert]": "true" - einfache Namen
+    ignoriert der Server stillschweigend und liefert dann alle ~7.000
+    Eintraege (17 MB). Deshalb wird geprueft, ob der Filter gegriffen hat,
+    statt es zu hoffen.
     """
     try:
-        resp = requests.get(f"https://www.abgeordnetenwatch.de/api/v2/parliaments/{parliament_id}",
-                            headers=UA, timeout=30)
+        resp = requests.get(config.LOBBYREGISTER_URL, params=params,
+                            headers=UA, timeout=60)
         resp.raise_for_status()
-        return resp.json().get("data", {}).get("current_project", {}).get("id")
+        daten = resp.json()
     except Exception as exc:
-        print(f"  ! Abgeordnetenwatch Wahlperiode nicht ermittelbar: {exc}")
+        print(f"  ! Lobbyregister-Suche fehlgeschlagen: {exc}")
+        return []
+    such = daten.get("searchParameters", {})
+    gefiltert = any(k.startswith("filter[") for k in params)
+    if gefiltert and not (such.get("facets") or such.get("numberRanges")):
+        print(f"  ! Lobbyregister hat den Filter ignoriert: {list(params)}")
+        return []
+    return daten.get("results", [])
+
+
+def _lobby_api(pfad: str):
+    key = os.environ.get("LOBBYREGISTER_API_KEY") or config.LOBBYREGISTER_API_KEY
+    try:
+        resp = requests.get(f"{config.LOBBYREGISTER_API}/{pfad}",
+                            params={"format": "json"},
+                            headers={**UA, "Authorization": f"ApiKey {key}"},
+                            timeout=60)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as exc:
+        print(f"    ! Lobbyregister-API {pfad} nicht ladbar: {exc}")
         return None
 
 
-def fetch_aow() -> list:
-    """Namentliche Abstimmungen von abgeordnetenwatch.de (JSON, kein Key).
+def lobby_eintrag(register_nr: str) -> dict | None:
+    """Der volle Registereintrag aus der API v2 (Personen, Vorhaben, ...)."""
+    return _lobby_api(f"registerentries/{register_nr}")
 
-    Die Poll-API wird nach Datum absteigend sortiert. Wir nehmen die
-    neuesten und behalten nur die innerhalb des Zeitfensters.
+
+def lobby_statistik() -> dict:
+    return _lobby_api("statistics/registerentries") or {}
+
+
+def lobby_name(eintrag: dict) -> str:
+    ident = eintrag.get("lobbyistIdentity") or {}
+    name = ident.get("name") or " ".join(
+        filter(None, [ident.get("firstName"), ident.get("lastName")]))
+    return _clean(name)
+
+
+def dip_drucksachen(vorgang_id: str) -> list:
+    """Die Bundestags-Drucksachennummern eines Vorgangs ("21/6278").
+
+    Ueber die Vorgangspositionen - die drucksache-Abfrage ignoriert den
+    Filter f.vorgang und liefert dann die neuesten Drucksachen ueberhaupt.
     """
-    if not config.AOW_ENABLED:
-        return []
-
-    legislature = _aow_current_legislature(config.AOW_PARLIAMENT_ID)
-    if legislature is None:
-        return []
-
-    cutoff = (datetime.now(timezone.utc)
-              - timedelta(hours=config.LOOKBACK_HOURS)).date()
-    params = {
-        "field_legislature": legislature,
-        "range_end": 15,
-        "sort_by": "field_poll_date",
-        "sort_direction": "desc",
-    }
-    try:
-        resp = requests.get("https://www.abgeordnetenwatch.de/api/v2/polls",
-                            params=params, headers=UA, timeout=30)
-        resp.raise_for_status()
-        data = resp.json().get("data", [])
-    except Exception as exc:
-        print(f"  ! Abgeordnetenwatch nicht erreichbar: {exc}")
-        return []
-
-    items = []
-    for poll in data:
-        ts = poll.get("field_poll_date")
-        if ts:
-            try:
-                poll_date = datetime.fromisoformat(ts).date()
-                if poll_date < cutoff:
-                    continue
-            except ValueError:
-                poll_date = cutoff
-        label = _clean(poll.get("label", ""))
-        result = _clean(poll.get("field_accepted", "") and "angenommen" or "")
-        items.append({
-            "id": _hash("aow" + str(poll.get("id"))),
-            "source": "Bundestag, namentliche Abstimmung (abgeordnetenwatch.de)",
-            "weight": 4,
-            "tier": "kern",
-            "title": label,
-            "text": (label + ". " + _clean(str(poll.get("field_intro", ""))))[:4000],
-            "url": poll.get("url", "https://www.abgeordnetenwatch.de/"),
-            "date": str(ts)[:10] if ts else cutoff.isoformat(),
-        })
-    print(f"  + Abgeordnetenwatch: {len(items)} Abstimmungen")
-    return items
+    positionen = _dip_get("vorgangsposition", **{"f.vorgang": vorgang_id}) or {}
+    nummern = []
+    for pos in positionen.get("documents", []):
+        fund = pos.get("fundstelle") or {}
+        nr = fund.get("dokumentnummer", "")
+        if (fund.get("dokumentart") == "Drucksache" and fund.get("herausgeber") == "BT"
+                and nr and nr not in nummern):
+            nummern.append(nr)
+    return nummern
 
 
-def _fetch_ordnungspunkt_artikel(article_id: str) -> dict | None:
-    """Holt den Volltext-Artikel zu einem Tagesordnungspunkt, falls vorhanden.
+# --- Parteispenden -----------------------------------------------------------
 
-    Viele Punkte (Sitzungseroeffnung, Ueberweisungen ohne Debatte) haben
-    keinen Artikel - dann bleibt es beim blossen Titel aus conferences.xml,
-    das ist normal. Wenn articleId gesetzt ist, gibt es aber oft einen
-    ausformulierten Nachrichtentext mit Zahlen und Zitaten (echtes
-    Belegmaterial statt nur einer Tagesordnungs-Ueberschrift).
-    """
-    if not article_id:
+_PARTEI_KURZ = {"Bündnis 90/ Die Grünen": "Grüne", "Bündnis 90/Die Grünen": "Grüne",
+                "Die Linke": "Linke", "Volt Deutschland": "Volt"}
+
+# Woran eine Organisation zu erkennen ist. Alles andere gilt als Privatperson -
+# lieber eine Firma zu vorsichtig behandeln als eine Person zu offen.
+_ORG_MERKMALE = re.compile(
+    r"(\b(GmbH|mbH|AG|Aktiengesellschaft|SE|KG|KGaA|OHG|GbR|eG|Ltd|Limited|"
+    r"Inc|LLC|Holding|Stiftung|Verband|Verein|Gesellschaft|Gruppe|Group|Bank|"
+    r"Campact|Institut|Partei)\b|e\.\s?V\.|S\.A\.|B\.V\.)")
+
+# Anschrift am Ende des Spenderfelds: Strasse, Hausnummer, PLZ, Ort.
+_ANSCHRIFT = re.compile(
+    r"\s+((?:(?:Am|An der|An den|Auf der|Auf dem|Im|In der|Zum|Zur|Unter den|"
+    r"Alt|Platz der|Hinter der|Vor dem)\s+)?\S+)\s+\d+\s*[a-zA-Z]?"
+    r"(?:\s*[-/]\s*\d+\s*[a-zA-Z]?)?\s+\d{4,5}\s+\D+$")
+
+
+def _spende_datum(text: str):
+    """Eingangsdatum, auch bei Teilzahlungen ("18./20./24.10. 2025").
+    Genommen wird der erste Tag - an dem hat die Spende begonnen."""
+    m = re.search(r"(\d{1,2})\.(?:\s*/\s*\d{1,2}\.)*\s*(\d{1,2})\.\s*(\d{4})", text)
+    if not m:
         return None
-    url = f"https://www.bundestag.de/blueprint/servlet/content/{article_id}/asAppV2NewsarticleXml"
     try:
-        resp = requests.get(url, headers=UA, timeout=15)
-        resp.raise_for_status()
-    except Exception as exc:
-        print(f"    ! Tagesordnung-Artikel {article_id} nicht ladbar: {exc}")
+        return datetime(int(m.group(3)), int(m.group(2)), int(m.group(1))).date()
+    except ValueError:
         return None
 
-    title_match = re.search(r"<title><!\[CDATA\[(.*?)\]\]></title>", resp.text, re.DOTALL)
-    text_match = re.search(r"<text><!\[CDATA\[(.*?)\]\]></text>", resp.text, re.DOTALL)
-    source_match = re.search(r"<sourceURL>(.*?)</sourceURL>", resp.text)
-    if not text_match:
+
+def _betrag(text: str) -> float | None:
+    zahl = re.search(r"\d[\d.]*(?:,\d+)?", text or "")
+    if not zahl:
         return None
-    return {
-        "title": _clean(title_match.group(1)) if title_match else "",
-        "text": _clean(text_match.group(1)),
-        "url": source_match.group(1) if source_match else url,
-    }
+    return float(zahl.group(0).replace(".", "").replace(",", "."))
 
 
-def fetch_tagesordnung() -> list:
-    """Tagesordnungspunkte der letzten Plenarsitzungen (Bundestag Live-API).
+def parteispenden_jahr(jahr: int) -> list:
+    """Alle Grossspenden (§ 25 PartG, ueber 35.000 Euro) eines Jahres.
 
-    conferences.xml selbst liefert nur Titel, Start-/Endzeit und optional
-    eine articleId. Wenn eine articleId da ist, wird der zugehoerige
-    Nachrichtenartikel (echter Fliesstext mit Zahlen, Zitaten) nachgeladen -
-    das besteht die Beleg-Pruefung in llm.py oft. Ohne articleId bleibt nur
-    der Titel, der meist an der Pruefung scheitert (skip). Beides ist
-    gewollt: was durchkommt, ist dann auch wirklich belegt.
+    Das Spenderfeld enthaelt die Anschrift - bei Privatpersonen die
+    Wohnadresse. Sie wird hier abgetrennt und nirgends weitergegeben.
     """
-    if not config.TAGESORDNUNG_ENABLED:
-        return []
-
-    cutoff = (datetime.now(timezone.utc)
-              - timedelta(hours=config.LOOKBACK_HOURS)).date()
-    try:
-        resp = requests.get(config.TAGESORDNUNG_URL, headers=UA, timeout=20)
-        resp.raise_for_status()
-    except Exception as exc:
-        print(f"  ! Tagesordnung nicht erreichbar: {exc}")
-        return []
-
-    items = []
-    for sitzung in re.findall(r"<tagesordnung>(.*?)</tagesordnung>", resp.text, re.DOTALL):
-        date_match = re.search(r"<date>(\d{2})\.(\d{2})\.(\d{4})</date>", sitzung)
-        if not date_match:
-            continue
-        day, month, year = date_match.groups()
-        sitzung_date = datetime(int(year), int(month), int(day)).date()
-        if sitzung_date < cutoff:
-            continue
-
-        for punkt in re.findall(r"<diskussionspunkt>(.*?)</diskussionspunkt>", sitzung, re.DOTALL):
-            titel_match = re.search(r"<titel>(.*?)</titel>", punkt)
-            titel = _clean(titel_match.group(1)) if titel_match else ""
-            if not titel:
-                continue
-            top_match = re.search(r"<top>(.*?)</top>", punkt)
-            top = _clean(top_match.group(1)) if top_match else ""
-
-            start_match = re.search(r"<startzeit>(\d{14})</startzeit>", punkt)
-            end_match = re.search(r"<endzeit>(\d{14})</endzeit>", punkt)
-            zeit = ""
-            if start_match and end_match:
-                s, e = start_match.group(1), end_match.group(1)
-                zeit = f"{s[8:10]}:{s[10:12]}-{e[8:10]}:{e[10:12]} Uhr"
-
-            article_match = re.search(r"<articleId>(\d+)</articleId>", punkt)
-            artikel = _fetch_ordnungspunkt_artikel(article_match.group(1)) if article_match else None
-
-            if artikel and len(artikel["text"]) > 100:
-                item_title = artikel["title"] or titel
-                text = artikel["text"]
-                url = artikel["url"]
-                weight = 3
-                tier = "kern"
-            else:
-                item_title = titel
-                details = ", ".join(d for d in (top, zeit) if d)
-                text = titel + (f" ({details})" if details else "")
-                url = "https://www.bundestag.de/tagesordnung"
-                weight = 2
-                tier = "kontext"
-
-            items.append({
-                "id": _hash("top" + sitzung_date.isoformat() + titel),
-                "source": "Bundestag, Tagesordnung Plenarsitzung",
-                "weight": weight,
-                "tier": tier,
-                "title": item_title,
-                "text": text[:config.FULLTEXT_MAX_CHARS],
-                "url": url,
-                "date": sitzung_date.isoformat(),
-            })
-    print(f"  + Tagesordnung: {len(items)} Punkte")
-    return items
-
-
-def fetch_lobbyregister() -> list:
-    """Neu registrierte oder aktualisierte Eintraege im Lobbyregister."""
-    if not config.LOBBYREGISTER_ENABLED:
-        return []
-
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=config.LOOKBACK_HOURS)
-    try:
-        resp = requests.get(config.LOBBYREGISTER_URL,
-                            params={"sortierung": "AKTUALITAET", "seite": 1},
-                            headers=UA, timeout=20)
-        resp.raise_for_status()
-        results = resp.json().get("results", [])
-    except Exception as exc:
-        print(f"  ! Lobbyregister nicht erreichbar: {exc}")
-        return []
-
-    items = []
-    for entry in results:
-        details = entry.get("registerEntryDetails", {}) or {}
-        ts = details.get("validFromDate", "")
-        try:
-            when = datetime.fromisoformat(ts)
-        except ValueError:
-            continue
-        if when < cutoff:
-            continue
-
-        identity = entry.get("lobbyistIdentity", {}) or {}
-        name = _clean(identity.get("name", ""))
-        activity = ((entry.get("activitiesAndInterests") or {}).get("activity") or {}).get("de", "")
-        expenses = ((entry.get("financialExpenses") or {}).get("financialExpensesEuro") or {})
-        text = (f"{name} wurde am {_de_datum(when.date())} im Lobbyregister des "
-                f"Bundestages registriert bzw. aktualisiert. Taetigkeit: {activity}. "
-                f"Finanzieller Aufwand fuer Interessenvertretung: "
-                f"{expenses.get('from', 0)} bis {expenses.get('to', 0)} Euro.")
-        items.append({
-            "id": _hash("lobby" + str(details.get("registerEntryId", ""))),
-            "source": "Lobbyregister beim Deutschen Bundestag",
-            "weight": 2,
-            "tier": "kontext",
-            "title": f"Lobbyregister: {name}",
-            "text": text[:4000],
-            "url": details.get("detailsPageUrl", "https://www.lobbyregister.bundestag.de/"),
-            "date": when.date().isoformat(),
-        })
-    print(f"  + Lobbyregister: {len(items)} Eintraege")
-    return items
-
-
-def fetch_parteispenden() -> list:
-    """Parteispenden ueber 35.000 Euro (§ 25 PartG), aktuelle Jahresseite."""
-    if not config.PARTEISPENDEN_ENABLED:
-        return []
-
-    cutoff = (datetime.now(timezone.utc)
-              - timedelta(hours=config.LOOKBACK_HOURS)).date()
-    year = datetime.now(timezone.utc).year
-    url = f"{config.PARTEISPENDEN_URL}/{year}"
+    url = f"{config.PARTEISPENDEN_URL}/{jahr}"
     try:
         resp = requests.get(url, headers=UA, timeout=20)
         resp.raise_for_status()
     except Exception as exc:
-        print(f"  ! Parteispenden nicht erreichbar: {exc}")
+        print(f"  ! Parteispenden {jahr} nicht erreichbar: {exc}")
         return []
 
-    items = []
+    spenden = []
     for row in re.findall(r"<tr>((?:(?!<tr>).)*?)</tr>", resp.text, re.DOTALL):
         cells = re.findall(r"<td>(.*?)</td>", row, re.DOTALL)
         if len(cells) != 5:
             continue
-        partei, spende, spender, eingang, anzeige = (_clean(c) for c in cells)
-        date_match = re.match(r"(\d{2})\.(\d{2})\.(\d{4})", eingang)
-        if not date_match:
+        partei, betrag, spender, eingang, _anzeige = (
+            _clean(html.unescape(c)).replace("\xad", "").replace("- ", "-")
+            for c in cells)
+        wert, datum = _betrag(betrag), _spende_datum(eingang)
+        if wert is None or datum is None:
+            print(f"    ! Spendenzeile nicht lesbar: {betrag} / {eingang}")
             continue
-        day, month, yr = date_match.groups()
-        spende_date = datetime(int(yr), int(month), int(day)).date()
-        if spende_date < cutoff:
-            continue
-
-        text = (f"Die Partei {partei} erhielt am {_de_datum(spende_date)} eine Spende "
-                f"in Hoehe von {spende} von {spender}. Eingang der Anzeige beim "
-                f"Bundestagspraesidium: {anzeige}.")
-        items.append({
-            "id": _hash("spende" + partei + spende + spender + eingang),
-            "source": "Bundestag, Parteispenden über 35.000 Euro (§ 25 PartG)",
-            "weight": 3,
-            "tier": "kern",
-            "title": f"{partei}: Spende {spende}",
-            "text": text[:4000],
+        name = _ANSCHRIFT.sub("", spender).strip() or spender
+        spenden.append({
+            "id": _hash("spende" + partei + betrag + spender + eingang),
+            "partei": _PARTEI_KURZ.get(partei, partei),
+            "betrag": wert,
+            "spender": name,
+            "organisation": bool(_ORG_MERKMALE.search(name)),
+            "datum": datum,
+            "jahr": jahr,
             "url": url,
-            "date": spende_date.isoformat(),
         })
-    print(f"  + Parteispenden: {len(items)} Eintraege")
-    return items
+    return spenden
 
 
-VOTE_LABELS = {"yes": "Ja", "no": "Nein", "abstain": "Enthaltung"}
+# --- abgeordnetenwatch -------------------------------------------------------
 
+def aow(pfad: str, **params):
+    """Ein Aufruf der abgeordnetenwatch-API, mit Ruecksicht aufs Rate-Limit.
 
-def fetch_einzelstimmen() -> list:
-    """Fraktionen, die bei einer namentlichen Abstimmung nicht einheitlich
-    gestimmt haben (abgeordnetenwatch /votes). Ein Item pro Fraktion und
-    Abstimmung, nicht pro Einzelstimme - sonst waeren es hunderte Items fuer
-    eine einzige Abstimmung. "Abweichler" ab EINZELSTIMMEN_MIN_ABWEICHLER.
+    Schon zuegige Einzelabfragen enden in HTTP 429 mit leerem Body. Dann
+    wird mit wachsender Pause wiederholt, statt den Lauf zu verlieren.
     """
-    if not config.EINZELSTIMMEN_ENABLED:
-        return []
-
-    legislature = _aow_current_legislature(config.AOW_PARLIAMENT_ID)
-    if legislature is None:
-        return []
-
-    # Schubweise veroeffentlichtes Register - eigenes Fenster, siehe config.
-    cutoff = (datetime.now(timezone.utc)
-              - timedelta(days=config.REGISTER_LOOKBACK_DAYS)).date()
-    try:
-        resp = requests.get("https://www.abgeordnetenwatch.de/api/v2/polls",
-                            params={"field_legislature": legislature, "range_end": 15,
-                                    "sort_by": "field_poll_date", "sort_direction": "desc"},
-                            headers=UA, timeout=30)
-        resp.raise_for_status()
-        polls = resp.json().get("data", [])
-    except Exception as exc:
-        print(f"  ! Einzelstimmen (Abstimmungsliste) nicht erreichbar: {exc}")
-        return []
-
-    items = []
-    for poll in polls:
-        ts = poll.get("field_poll_date")
+    for versuch in range(5):
         try:
-            poll_date = datetime.fromisoformat(ts).date() if ts else cutoff
-        except ValueError:
-            poll_date = cutoff
-        if poll_date < cutoff:
-            continue
-
-        try:
-            vresp = requests.get("https://www.abgeordnetenwatch.de/api/v2/votes",
-                                params={"poll": poll["id"], "range_end": 1000},
-                                headers=UA, timeout=30)
-            vresp.raise_for_status()
-            votes = vresp.json().get("data", [])
+            resp = requests.get(f"https://www.abgeordnetenwatch.de/api/v2/{pfad}",
+                                params=params, headers=UA, timeout=30)
+            if resp.status_code == 429:
+                time.sleep(3 * (versuch + 1))
+                continue
+            resp.raise_for_status()
+            return resp.json().get("data")
         except Exception as exc:
-            print(f"    ! Einzelstimmen fuer Poll {poll.get('id')} nicht ladbar: {exc}")
-            continue
-
-        by_fraktion: dict = {}
-        for v in votes:
-            fraktion = (v.get("fraction") or {}).get("label", "").split(" (")[0]
-            if not fraktion or v.get("vote") not in VOTE_LABELS:
-                continue
-            by_fraktion.setdefault(fraktion, {}).setdefault(v["vote"], 0)
-            by_fraktion[fraktion][v["vote"]] += 1
-
-        label = _clean(poll.get("label", ""))
-        url = poll.get("url", "https://www.abgeordnetenwatch.de/")
-        for fraktion, counts in by_fraktion.items():
-            total = sum(counts.values())
-            mehrheit = max(counts.values())
-            minderheit = total - mehrheit
-            if minderheit < config.EINZELSTIMMEN_MIN_ABWEICHLER:
-                continue
-            aufschluesselung = ", ".join(f"{n} {VOTE_LABELS[v]}" for v, n in sorted(counts.items()))
-            text = (f"Bei der Abstimmung \"{label}\" am {_de_datum(poll_date)} stimmte die "
-                    f"Fraktion {fraktion} nicht einheitlich ab: {aufschluesselung}.")
-            items.append({
-                "id": _hash("votes" + str(poll["id"]) + fraktion),
-                "source": "Bundestag, namentliche Abstimmung - Einzelstimmen (abgeordnetenwatch.de)",
-                "weight": 3,
-                "tier": "kern",
-                "art": "einzelstimme",
-                "title": f"{fraktion} uneinig bei: {label}"[:120],
-                "text": text[:4000],
-                "url": url,
-                "date": poll_date.isoformat(),
-            })
-    print(f"  + Einzelstimmen: {len(items)} abweichende Fraktionen")
-    return items
+            print(f"    ! abgeordnetenwatch {pfad}: {exc}")
+            time.sleep(2)
+    return None
 
 
-def fetch_nebentaetigkeiten() -> list:
-    """Neu erfasste/aktualisierte Nebeneinkuenfte (abgeordnetenwatch /sidejobs)."""
-    if not config.NEBENTAETIGKEITEN_ENABLED:
-        return []
-
-    # Schubweise veroeffentlichtes Register - eigenes Fenster, siehe config.
-    cutoff = (datetime.now(timezone.utc)
-              - timedelta(days=config.REGISTER_LOOKBACK_DAYS)).date()
-    try:
-        resp = requests.get("https://www.abgeordnetenwatch.de/api/v2/sidejobs",
-                            params={"range_end": 200, "sort_by": "data_change_date",
-                                    "sort_direction": "desc",
-                                    "data_change_date[gte]": cutoff.isoformat()},
-                            headers=UA, timeout=30)
-        resp.raise_for_status()
-        entries = resp.json().get("data", [])
-    except Exception as exc:
-        print(f"  ! Nebentaetigkeiten nicht erreichbar: {exc}")
-        return []
-
-    items = []
-    for entry in entries:
-        mandate = (entry.get("mandates") or [{}])[0]
-        name = mandate.get("label", "").split(" (")[0]
-        if not name:
-            continue
-        job = _clean(entry.get("label", ""))
-        organisation = ((entry.get("sidejob_organization") or {}).get("label", ""))
-        change_date = entry.get("data_change_date") or cutoff.isoformat()
-        try:
-            change_date_de = _de_datum(datetime.fromisoformat(change_date).date())
-        except ValueError:
-            change_date_de = change_date
-
-        text = f"{name} (MdB) hat die Nebentaetigkeit \"{job}\""
-        if organisation:
-            text += f" bei {organisation}"
-        text += f" gemeldet bzw. aktualisiert (Stand: {change_date_de})."
-
-        items.append({
-            "id": _hash("sidejob" + str(entry.get("id", ""))),
-            "source": "Nebentätigkeiten der Abgeordneten (abgeordnetenwatch.de)",
-            "weight": 2,
-            "tier": "kontext",
-            "art": "nebentaetigkeit",
-            "title": f"Nebentaetigkeit: {name} - {job}"[:120],
-            "text": text[:4000],
-            "url": config.NEBENTAETIGKEITEN_URL,
-            "date": change_date,
-        })
-    print(f"  + Nebentaetigkeiten: {len(items)} Eintraege")
-    return items
+def neben_zeitraum(e: dict) -> str:
+    """Wofuer der gemeldete Betrag gilt. `interval` laut API-Doku:
+    0 = einmalig, 1 = monatlich, 2 = jaehrlich. Ohne Intervall steht der
+    Zeitraum oft in job_title_extra ("Einkommen im Jahr 2025") - das ist
+    eine Jahressumme."""
+    iv = str(e.get("interval") or "")
+    if iv == "1":
+        return "im Monat"
+    if iv == "2" or re.search(r"im Jahr \d{4}", e.get("job_title_extra") or ""):
+        return "im Jahr"
+    if iv == "0":
+        return "einmalig"
+    return ""
 
 
-def fetch_ausschuesse() -> list:
-    """Besetzungsaenderungen in Bundestagsausschuessen (Bundestag XML).
+def neben_jahreswert(e: dict) -> float:
+    """Der Betrag aufs Jahr gerechnet, fuer jeden Vergleich: ein Monatsbetrag
+    zaehlt zwoelffach. Linnemann meldete 11.227 Euro im Monat - roh gegen
+    Jahressummen anderer verglichen, stand er auf Platz 51 statt weit vorn."""
+    betrag = float(e.get("income") or 0)
+    return betrag * 12 if str(e.get("interval") or "") == "1" else betrag
 
-    Das lastChanged auf Uebersichtsebene aendert sich kaum und ist kein
-    brauchbares Signal fuer Mitgliederwechsel. Das lastChanged JE MITGLIED
-    in der Detail-XML waere brauchbar, ist aber verrauscht: an manchen Tagen
-    haben ploetzlich fast alle Mitglieder eines Ausschusses dasselbe Datum -
-    ein technischer Sammel-Sync, keine echte Nachricht. Deshalb wird pro
-    Ausschuss das haeufigste Mitglieder-Datum als "Sync-Rauschen" verworfen;
-    nur Mitglieder mit einem DAVON ABWEICHENDEN, aktuellen Datum zaehlen als
-    Kandidat fuer eine echte Aenderung. Von denen wiederum nur Leitungs-
-    rollen (Vorsitz, Obleute, Sprecher) - ein normales "Ordentliches" oder
-    "Stellvertretendes Mitglied" wechselt staendig routinemaessig, das waere
-    reines Rauschen im Digest. Das kostet einen Request pro Ausschuss (~25),
-    einmal taeglich vertretbar.
+
+NEBEN_STATISTIK = Path("data/neben_statistik.json")
+NEBEN_STATISTIK_TAGE = 7
+
+
+def neben_statistik(periode: int = 161) -> dict:
+    """Nebentaetigkeiten aller Abgeordneten einer Wahlperiode, je Mandat
+    verdichtet: {mandat_id: {"n", "betrag", "max"}}.
+
+    Fuer den Vergleich "diese Person gegen den Bundestag". Der Filter
+    mandates[entity.parliament_period] greift serverseitig (WP 2025-2029:
+    4.612 Meldungen am 25.09.2026, fuenf Seiten zu 1.000). Die Zahlen
+    aendern sich schubweise, eine Woche Cache genuegt und schont das
+    empfindliche Rate-Limit.
     """
-    if not config.AUSSCHUESSE_ENABLED:
-        return []
-
-    cutoff = (datetime.now(timezone.utc)
-              - timedelta(hours=config.LOOKBACK_HOURS)).date()
     try:
-        resp = requests.get(config.AUSSCHUESSE_INDEX_URL, headers=UA, timeout=20)
-        resp.raise_for_status()
-    except Exception as exc:
-        print(f"  ! Ausschuesse nicht erreichbar: {exc}")
-        return []
+        daten = json.loads(NEBEN_STATISTIK.read_text(encoding="utf-8"))
+        # Version 3: "max" und "summe" aufs Jahr gerechnet (Monat x 12).
+        if (daten.get("version") == 3 and daten.get("periode") == periode
+                and (date.today() - date.fromisoformat(daten["stand"])).days
+                < NEBEN_STATISTIK_TAGE):
+            return daten
+    except (OSError, ValueError, KeyError):
+        pass
 
-    items = []
-    for ausschuss_id, body in re.findall(r'<ausschuss id="([^"]+)">(.*?)</ausschuss>', resp.text, re.DOTALL):
-        name_match = re.search(r"<ausschussName>(.*?)</ausschussName>", body)
-        name = _clean(name_match.group(1)) if name_match else ausschuss_id
-        detail_match = re.search(r"<ausschussDetailXML>(.*?)</ausschussDetailXML>", body)
-        detail_url = detail_match.group(1) if detail_match else None
-        if not detail_url:
-            continue
+    # Eine Meldung nennt alle Mandate der Person, auch fruehere Wahlperioden
+    # ("Merz (Bundestag 2021 - 2025)"). Gezaehlt wird nur das Mandat der
+    # abgefragten Periode - sonst standen 1.205 "Abgeordnete" in der Liste.
+    marke = {161: "Bundestag 2025 - 2029", 132: "Bundestag 2021 - 2025"}.get(periode, "")
+    je, start = {}, 0
+    while True:
+        seite = aow("sidejobs", **{"mandates[entity.parliament_period]": periode},
+                    range_start=start, range_end=1000)
+        if seite is None:
+            print("    ! Nebentaetigkeiten-Statistik unvollstaendig - ohne Vergleich")
+            return {}
+        for e in seite:
+            betrag = neben_jahreswert(e)
+            for m in e.get("mandates") or []:
+                if marke not in m.get("label", ""):
+                    continue
+                z = je.setdefault(str(m["id"]), {"n": 0, "betrag": 0, "max": 0,
+                                                 "summe": 0})
+                z["n"] += 1
+                z["betrag"] += 1 if betrag else 0
+                z["max"] = max(z["max"], betrag)
+                z["summe"] += betrag
+        if len(seite) < 1000:
+            break
+        start += 1000
+        time.sleep(1)
 
-        try:
-            dresp = requests.get(detail_url, headers=UA, timeout=20)
-            dresp.raise_for_status()
-        except Exception as exc:
-            print(f"    ! Ausschuss-Detail {name} nicht ladbar: {exc}")
-            continue
+    daten = {"version": 3, "periode": periode, "stand": date.today().isoformat(),
+             "meldungen": sum(z["n"] for z in je.values()), "je": je}
+    NEBEN_STATISTIK.parent.mkdir(exist_ok=True)
+    NEBEN_STATISTIK.write_text(json.dumps(daten, indent=0), encoding="utf-8")
+    return daten
 
-        members = re.findall(r'<mdb fraktion="([^"]*)">(.*?)</mdb>', dresp.text, re.DOTALL)
-        parsed = []
-        for fraktion, mbody in members:
-            name_m = re.search(r'<mdbName status="[^"]*">([^<]*)</mdbName>', mbody)
-            role_m = re.search(r"<role>([^<]*)</role>", mbody)
-            changed_m = re.search(r"<lastChanged>(\d{2})\.(\d{2})\.(\d{4})</lastChanged>", mbody)
-            if not (name_m and changed_m):
-                continue
-            d, mo, y = changed_m.groups()
-            parsed.append({
-                "name": _clean(name_m.group(1)),
-                "fraktion": fraktion,
-                "role": _clean(role_m.group(1)) if role_m else "",
-                "date": datetime(int(y), int(mo), int(d)).date(),
-            })
-        if not parsed:
-            continue
 
-        dates = [m["date"] for m in parsed]
-        sync_noise_date = max(set(dates), key=dates.count)
-        # Nur Leitungsrollen zaehlen als meldenswert - "Ordentliches" oder
-        # "Stellvertretendes Mitglied" ist Routine-Umbesetzung, kein Digest-Stoff.
-        leitungsrollen = ("vorsitz", "obleute", "sprecher")
-        auffaellig = [m for m in parsed
-                      if m["date"] != sync_noise_date and m["date"] >= cutoff
-                      and any(r in m["role"].lower() for r in leitungsrollen)]
-        if not auffaellig:
-            continue
+def mandat_in_periode(politiker_id: int, periode: int) -> int | None:
+    """Mandats-ID einer Person in einer Wahlperiode (132 = 2021-2025)."""
+    mandate = aow("candidacies-mandates", politician=politiker_id,
+                  parliament_period=periode, type="mandate") or []
+    return mandate[0]["id"] if mandate else None
 
-        source_match = re.search(r"<ausschussSourceURL>(.*?)</ausschussSourceURL>", dresp.text)
-        url = source_match.group(1) if source_match else detail_url
-        for m in auffaellig:
-            rolle = f" ({m['role']})" if m['role'] else ""
-            text = (f"{m['name']}{rolle}, Fraktion {m['fraktion']}, ist laut Bundestag seit "
-                    f"{_de_datum(m['date'])} im Ausschuss {name} gefuehrt.")
-            items.append({
-                "id": _hash("ausschuss" + ausschuss_id + m["name"] + m["date"].isoformat()),
-                "source": f"Bundestag, Ausschuss {name}",
-                "weight": 2,
-                "tier": "kontext",
-                "title": f"Ausschuss {name}: {m['name']}{rolle}"[:120],
-                "text": text[:config.FULLTEXT_MAX_CHARS],
-                "url": url,
-                "date": m["date"].isoformat(),
-            })
-    print(f"  + Ausschuesse: {len(items)} Besetzungsaenderungen")
-    return items
+
+def wikipedia_kurz(name: str) -> str:
+    """Einleitung des deutschen Wikipedia-Artikels zu einer Organisation, oder "".
+
+    Nur wenn der Artikeltitel wirklich zum Namen passt (gleiche Woerter ohne
+    Rechtsform): ein falscher Artikel wuerde einer Organisation die
+    Geschichte einer anderen zuschreiben.
+    """
+    import logos
+    try:
+        treffer = requests.get("https://de.wikipedia.org/w/api.php", params={
+            "action": "query", "list": "search", "srsearch": name, "srlimit": 3,
+            "format": "json"}, headers=UA, timeout=20).json()["query"]["search"]
+        for t in treffer:
+            titel = re.sub(r"\s*\([^)]*\)$", "", t["title"])
+            if logos._woerter(titel) and logos._woerter(titel) <= logos._woerter(name):
+                zusammen = requests.get(
+                    "https://de.wikipedia.org/api/rest_v1/page/summary/"
+                    + t["title"].replace(" ", "_"), headers=UA, timeout=20).json()
+                return zusammen.get("extract", "")
+    except (requests.RequestException, ValueError, KeyError) as exc:
+        print(f"    - Wikipedia zu {name}: {exc}")
+    return ""
 
 
 def prefilter(items: list, seen: set) -> list:
@@ -929,13 +783,11 @@ def prefilter(items: list, seen: set) -> list:
     return kept[:40]
 
 
-# Die zehn Quellen haengen nicht voneinander ab und warten fast nur auf das
+# Die Quellen haengen nicht voneinander ab und warten fast nur auf das
 # Netz - nacheinander gelesen dauert das ueber 100 Sekunden, die praktisch
 # vollstaendig Leerlauf sind. Bewusst wenige Arbeiter: es sind fremde, meist
 # amtliche Server, und die Fetcher laden teilweise noch Artikelseiten nach.
-_FETCHER = (fetch_rss, fetch_bundespuls, fetch_dip, fetch_aow,
-            fetch_tagesordnung, fetch_lobbyregister, fetch_parteispenden,
-            fetch_einzelstimmen, fetch_nebentaetigkeiten, fetch_ausschuesse)
+_FETCHER = (fetch_destatis, fetch_dip)
 COLLECT_WORKERS = 5
 
 

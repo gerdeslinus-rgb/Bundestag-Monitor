@@ -35,7 +35,14 @@ VARIANTEN = {
     "1d": "ink",     # Senkrechter Schnitt (Foto links)
     "1e": "light",   # Foto unten
     "1f": "ink",     # Vollbild mit Band
+    "1g": "light",   # Portraet: Farbfeld rechts, Person auf der Kante (nur Personen)
+    "1h": "light",   # Portraet gespiegelt: Farbfeld und Person links, Text rechts
+    "1i": "ink",     # Portraet auf Ink: Person rechts vor grossem Akzentkreis
 }
+
+# Personen-Karussells ziehen aus diesen drei (Abstimmung 25.09.2026: 1g
+# gefiel, aber zwei Personen hintereinander sahen gleich aus).
+PORTRAET_VARIANTEN = ("1g", "1h", "1i")
 
 # Varianten, die ein Foto brauchen - und die Ausrichtung, in der sie es
 # brauchen. 1d ist eine 430 px schmale Spalte ueber die volle Hoehe, 1f fuellt
@@ -56,6 +63,12 @@ FIGUR_MAX = 14
 # 1f: das Band waechst mit dem Text nach oben und frisst irgendwann das Foto.
 # Laenger als das gehoert die Meldung auf 1e.
 BAND_WOERTER_MAX = 8
+
+# 1d: die Textspalte ist 650 px breit. Ein Wort wie "GKV-Beitragssatz-
+# stabilisierungsgesetz" braucht dort auch bei 56 px vier Zeilen - die Regel
+# "hoechstens drei" (§6.2) ist damit nicht zu halten. So ein Wort passt auf
+# die volle Breite, nicht in die Spalte.
+SPALTE_WORT_MAX = 22
 
 
 def letzte_laden() -> list:
@@ -94,8 +107,15 @@ def _figur_kandidaten(slides: dict) -> list:
     jedes Karussell, auch ein Profil-Karussell. Damit ist 1a praktisch immer
     waehlbar, und die Ziehung laeuft nie ins Leere.
     """
+    # Datenkarussells (weitere.py) wissen selbst, welche Zahl die Meldung
+    # IST - "61 Organisationen" steht in keinem Balken, sondern ist ihre Summe.
+    # Und sie wissen, wann es keine gibt: eine Anzahl "3" oder die Groesse
+    # einer Vergleichsgruppe traegt kein "Zahl zuerst".
+    if slides.get("keine_figur"):
+        return []
     folgen = slides.get("folgen") or {}
-    kandidaten = [z.get("neu") for z in folgen.get("zeilen", []) or []]
+    kandidaten = [slides.get("cover_figur")]
+    kandidaten += [z.get("neu") for z in folgen.get("zeilen", []) or []]
     for fall in folgen.get("faelle", []) or []:
         kandidaten += [k.get("wert") for k in fall.get("kennzahlen", []) or []]
     kandidaten += [p.get("wert") for p in folgen.get("pills", []) or []]
@@ -175,7 +195,10 @@ def passende(slides: dict, foto: bool, headline: str = "",
     if vorher_nachher(slides):
         passt.append("1c")
     if foto:
-        passt += ["1d", "1e"]
+        laengstes = max((len(w) for w in (headline or "").split()), default=0)
+        if laengstes <= SPALTE_WORT_MAX:
+            passt.append("1d")
+        passt.append("1e")
         if len((headline or "").split()) <= BAND_WOERTER_MAX:
             passt.append("1f")
 
@@ -199,6 +222,12 @@ def waehlen(slides: dict, foto: bool, zuletzt: list, headline: str = "",
     und erst, wenn auch das leer ist, auf den ganzen Eignungssatz. Ein
     Lieblingslayout von Hand gibt es an keiner Stelle.
     """
+    # Ein Personen-Karussell zeigt die Person, immer (Abstimmung 25.09.2026):
+    # gezogen wird nur unter den Portraet-Architekturen, mit derselben Sperre
+    # fuer die letzten zwei.
+    if slides.get("portraet"):
+        frei = [v for v in PORTRAET_VARIANTEN if v not in zuletzt[:GEDAECHTNIS]]
+        return random.choice(frei or list(PORTRAET_VARIANTEN))
     geeignet = passende(slides, foto, headline, stuetzzeile, bogen) or ["1a"]
     for sperre in (zuletzt[:GEDAECHTNIS], zuletzt[:1], []):
         uebrig = [v for v in geeignet if v not in sperre]

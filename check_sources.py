@@ -41,38 +41,33 @@ def check_feeds(feeds: list) -> None:
             print(f"FEHL {src['name']}: {exc}")
 
 
-def check_tagesordnung() -> None:
-    if not config.TAGESORDNUNG_ENABLED:
-        print("INFO Tagesordnung: deaktiviert")
-        return
-    try:
-        resp = requests.get(config.TAGESORDNUNG_URL, headers=UA, timeout=20)
-        resp.raise_for_status()
-        count = resp.text.count("<diskussionspunkt>")
-        print(f"OK  Tagesordnung: {count} Punkte ({resp.status_code})")
-    except Exception as exc:
-        print(f"FEHL Tagesordnung: {exc}")
-
-
 def check_lobbyregister() -> None:
-    if not config.LOBBYREGISTER_ENABLED:
-        print("INFO Lobbyregister: deaktiviert")
-        return
+    # Mit Filter: ohne liefert die Suche alle ~7.000 Eintraege (17 MB). Greift
+    # der Filter nicht mehr, ist das hier sichtbar statt erst im Lauf.
     try:
         resp = requests.get(config.LOBBYREGISTER_URL,
-                            params={"sortierung": "AKTUALITAET", "seite": 1},
-                            headers=UA, timeout=20)
+                            params={"filter[revolvingdooractive][true]": "true"},
+                            headers=UA, timeout=60)
         resp.raise_for_status()
-        count = len(resp.json().get("results", []))
-        print(f"OK  Lobbyregister: {count} Eintraege ({resp.status_code})")
+        daten = resp.json()
+        count = daten.get("resultCount", 0)
+        ok = bool(daten.get("searchParameters", {}).get("facets")) and count < 1000
+        print(f"{'OK ' if ok else 'WARN'} Lobbyregister-Suche: Filter "
+              f"{'greift' if ok else 'greift NICHT'}, {count} Treffer ({resp.status_code})")
     except Exception as exc:
-        print(f"FEHL Lobbyregister: {exc}")
+        print(f"FEHL Lobbyregister-Suche: {exc}")
+    key = os.environ.get("LOBBYREGISTER_API_KEY") or config.LOBBYREGISTER_API_KEY
+    try:
+        resp = requests.get(f"{config.LOBBYREGISTER_API}/statistics/registerentries",
+                            params={"format": "json"},
+                            headers={**UA, "Authorization": f"ApiKey {key}"}, timeout=30)
+        resp.raise_for_status()
+        print(f"OK  Lobbyregister-API: Key gueltig ({resp.status_code})")
+    except Exception as exc:
+        print(f"FEHL Lobbyregister-API (Key auf der Open-Data-Seite pruefen): {exc}")
 
 
 def check_parteispenden() -> None:
-    if not config.PARTEISPENDEN_ENABLED:
-        print("INFO Parteispenden: deaktiviert")
-        return
     year = datetime.now().year
     url = f"{config.PARTEISPENDEN_URL}/{year}"
     try:
@@ -114,47 +109,7 @@ def check_dip() -> None:
         print(f"FEHL DIP: {exc}")
 
 
-def check_aow() -> None:
-    if not config.AOW_ENABLED:
-        print("INFO Abgeordnetenwatch: deaktiviert")
-        return
-    try:
-        pr = requests.get(f"https://www.abgeordnetenwatch.de/api/v2/parliaments/{config.AOW_PARLIAMENT_ID}",
-                          headers=UA, timeout=30)
-        pr.raise_for_status()
-        legislature = pr.json().get("data", {}).get("current_project", {}).get("id")
-
-        resp = requests.get("https://www.abgeordnetenwatch.de/api/v2/polls",
-                            params={"field_legislature": legislature,
-                                    "range_end": 5,
-                                    "sort_by": "field_poll_date",
-                                    "sort_direction": "desc"},
-                            headers=UA, timeout=30)
-        resp.raise_for_status()
-        count = len(resp.json().get("data", []))
-        print(f"OK  Abgeordnetenwatch: {count} Abstimmungen ({resp.status_code})")
-    except Exception as exc:
-        print(f"FEHL Abgeordnetenwatch: {exc}")
-
-
-def check_einzelstimmen() -> None:
-    if not config.EINZELSTIMMEN_ENABLED:
-        print("INFO Einzelstimmen: deaktiviert")
-        return
-    try:
-        resp = requests.get("https://www.abgeordnetenwatch.de/api/v2/votes",
-                            params={"range_end": 1}, headers=UA, timeout=20)
-        resp.raise_for_status()
-        total = resp.json().get("meta", {}).get("result", {}).get("total", 0)
-        print(f"OK  Einzelstimmen: {total} Stimmen insgesamt in der API ({resp.status_code})")
-    except Exception as exc:
-        print(f"FEHL Einzelstimmen: {exc}")
-
-
 def check_nebentaetigkeiten() -> None:
-    if not config.NEBENTAETIGKEITEN_ENABLED:
-        print("INFO Nebentaetigkeiten: deaktiviert")
-        return
     try:
         resp = requests.get("https://www.abgeordnetenwatch.de/api/v2/sidejobs",
                             params={"range_end": 1, "sort_by": "data_change_date",
@@ -167,28 +122,9 @@ def check_nebentaetigkeiten() -> None:
         print(f"FEHL Nebentaetigkeiten: {exc}")
 
 
-def check_ausschuesse() -> None:
-    if not config.AUSSCHUESSE_ENABLED:
-        print("INFO Ausschuesse: deaktiviert")
-        return
-    try:
-        resp = requests.get(config.AUSSCHUESSE_INDEX_URL, headers=UA, timeout=20)
-        resp.raise_for_status()
-        count = resp.text.count("<ausschuss id=")
-        print(f"OK  Ausschuesse: {count} Ausschuesse in der Uebersicht ({resp.status_code})")
-    except Exception as exc:
-        print(f"FEHL Ausschuesse: {exc}")
-
-
 if __name__ == "__main__":
-    check_feeds(config.RSS_SOURCES)
-    if config.BUNDESPULS_ENABLED:
-        check_feeds(config.BUNDESPULS_FEEDS)
+    check_feeds([{"name": "Destatis", "url": config.DESTATIS_FEED}])
     check_dip()
-    check_aow()
-    check_tagesordnung()
     check_lobbyregister()
     check_parteispenden()
-    check_einzelstimmen()
     check_nebentaetigkeiten()
-    check_ausschuesse()

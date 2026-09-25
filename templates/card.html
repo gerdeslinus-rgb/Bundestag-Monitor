@@ -30,6 +30,12 @@
     --card:        #FFFFFF;   /* Karten und Pills */
     --accent:      #6FA0C8;   /* Stahlblau, sparsam */
     --accent-deep: #2F6C9E;   /* dasselbe Blau, wo es auf Weiss tragen muss */
+    /* Richtungsfarben, nur in Balkendiagrammen mit wertung "hoch_gut"
+       oder "hoch_schlecht" (dort umgekehrt: Anstieg rot) */
+    --gut:           #1E7B45;   /* auf hellem Grund */
+    --schlecht:      #B42318;
+    --gut-hell:      #5CC98E;   /* auf Ink */
+    --schlecht-hell: #F2766B;
 
     --slab: "Zilla Slab", Georgia, serif;
 
@@ -111,6 +117,9 @@
     gap: 32px; font-size: var(--small); line-height: 1.35; opacity: 0.75;
   }
   .foot .src { text-align: right; white-space: pre-line; }
+  /* Der Zaehler bricht nie um: eine zweizeilige Quelle quetschte ihn
+     sonst zu "2 /" ueber "4". */
+  .foot > span:first-child { white-space: nowrap; flex-shrink: 0; }
 
   /* Eine Nachbemerkung steht hinter einer durchgehenden Haarlinie,
      nie neben einem Stummelbalken. */
@@ -269,6 +278,64 @@
     display: flex; flex-direction: column; gap: 32px;
   }
 
+  /* 1g Portraet (Variante B, abgestimmt 25.09.2026): rechts ein Farbfeld
+     ueber die volle Hoehe, die freigestellte Person steht auf seiner Kante
+     und laeuft unten aus dem Bild. Der Text bleibt links in einer festen
+     Spalte - die Person darf nie in die Schlagzeile ragen. In Farbe: das
+     Graustufen-Filter der Fotovarianten gilt hier ausdruecklich nicht. */
+  section.cover.cover-1g { position: relative; display: block; overflow: hidden; }
+  .cover-1g .feld {
+    position: absolute; right: 0; top: 0; bottom: 0; width: 420px;
+    background: var(--accent);
+  }
+  .cover-1g .person {
+    position: absolute; right: -90px; bottom: 0; height: 780px;
+    max-width: 700px; object-fit: contain; object-position: right bottom;
+  }
+  .cover-1g .cover-text {
+    position: absolute; left: 76px; top: 0; bottom: 0; width: 500px;
+    gap: 40px; z-index: 2;
+  }
+  .cover-1g h1 { font-size: var(--display); }
+
+  /* 1h: 1g gespiegelt - Farbfeld und Person links, Text rechts. Das Bild
+     wird NICHT gespiegelt (ein gespiegeltes Portraet ist ein anderes
+     Gesicht); nur die Flaechen wechseln die Seite. */
+  section.cover.cover-1h { position: relative; display: block; overflow: hidden; }
+  .cover-1h .feld {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 420px;
+    background: var(--accent);
+  }
+  .cover-1h .person {
+    position: absolute; left: -90px; bottom: 0; height: 780px;
+    max-width: 700px; object-fit: contain; object-position: left bottom;
+  }
+  .cover-1h .cover-text {
+    position: absolute; right: 76px; top: 0; bottom: 0; width: 470px;
+    gap: 40px; z-index: 2;
+  }
+  .cover-1h h1 { font-size: var(--display); }
+
+  /* 1i: Ink-Grund, grosser Akzentkreis unten rechts, die Person davor und
+     rechts angeschnitten. Text oben links, Stuetzzeile schmal, damit sie
+     nie in den Kopf laeuft. */
+  section.cover.cover-1i { position: relative; display: block; overflow: hidden; }
+  /* Gross genug, dass der Kreis hinter Kopf UND Schultern steht - mit
+     860 px sah er wie ein Heiligenschein aus (25.09.2026). */
+  .cover-1i .kreis {
+    position: absolute; width: 1180px; height: 1180px; border-radius: 50%;
+    right: -470px; bottom: -380px; background: var(--accent);
+  }
+  .cover-1i .person {
+    position: absolute; right: -60px; bottom: 0; height: 820px;
+    max-width: 760px; object-fit: contain; object-position: right bottom;
+  }
+  .cover-1i .cover-text {
+    position: absolute; left: 76px; top: 96px; width: 720px;
+    flex: none; justify-content: flex-start; gap: 36px; z-index: 2;
+  }
+  .cover-1i .cover-copy { max-width: 440px; }
+
   /* --- Signatur 5: Pfeilliste statt Punkten --------------------------- */
   /* Der Pfeil steht in einer 80px-Spur und sitzt in einer 45px hohen Box:
      dadurch liegt er auf der ERSTEN Zeile seines Textes, egal ob der eine
@@ -283,6 +350,9 @@
     font-family: var(--slab); font-weight: 700; font-size: var(--display);
     height: 45px; display: flex; align-items: center; line-height: 1;
     color: var(--accent-deep);
+    /* Der Pfeil der Zilla Slab sitzt in seiner Box tief: mittig gesetzt lag
+       er 6-8 px unter der Mitte der ersten Textzeile (25.09.2026 gemessen). */
+    transform: translateY(-7px);
   }
   .on-ink .arrows .mark { color: var(--accent); }
   .arrows .txt { font-size: var(--body); line-height: 1.4; text-wrap: pretty; }
@@ -306,6 +376,85 @@
   }
   .begriff-karte p { grid-column: 2; text-wrap: pretty; }
   .begriff-karte .beispiel { font-weight: 700; }
+
+  /* Logos (nur Commons, logos.py): immer auf einer weissen Kachel. Viele
+     Logos sind dunkel (CDU, BMW) und verschwaenden sonst auf Ink. Ohne Logo
+     steht nur der Name - kein Platzhalter, kein Monogramm. */
+  /* Hoehe fest, Breite folgt dem Logo: eine Wortmarke wie die des vzbv
+     ist in einem Quadrat nur noch ein Strich. */
+  img.logo {
+    height: 56px; width: auto; min-width: 56px; max-width: 170px;
+    flex: none; object-fit: contain;
+    background: var(--card); border-radius: 12px; padding: 6px;
+  }
+  .bar-name { display: inline-flex; align-items: center; gap: 18px; }
+  img.logo.klein { height: 36px; min-width: 36px; max-width: 110px; padding: 4px; border-radius: 8px; }
+  /* Parteilogo IN der Schlagzeile (statt des Namens): so hoch wie die
+     Versalhoehe, auf weisser Kachel wie alle Logos. */
+  .partei-ende { white-space: nowrap; }
+  /* Gross genug, um als Wort zu lesen: 1,3 Versalhoehen, auf der Grundlinie
+     der Zeile. Die erste Fassung (0,86 em) war neben 96 px Versalien eine
+     Briefmarke. */
+  img.partei-logo {
+    height: 1.3em; width: auto; max-width: 4.2em; vertical-align: -0.28em;
+    background: var(--card); border-radius: 0.1em; padding: 0.08em 0.12em;
+    margin-left: 0.06em;
+  }
+  /* Logos mit eigener Flaeche: ohne Kachel, sonst weisser Rand. */
+  img.logo.ohne-kachel, img.partei-logo.ohne-kachel {
+    background: none; padding: 0; border-radius: 0.08em;
+  }
+  /* Mit Logo steht die Zeile mittig, sonst rutscht der Wert unter die
+     Grundlinie der Kachel. */
+  .bar-label:has(img.logo) { align-items: center; }
+  .bar-name img.logo { margin: -12px 0; }
+  .badge.logo-badge { background: var(--card); border: 2px solid rgba(34, 51, 65, 0.14); }
+  .badge.logo-badge img { width: 60px; height: 60px; object-fit: contain; }
+
+  /* Kleine Saeulenreihe fuer Jahresvergleiche auf der Pfeillisten-Slide
+     (Spenden 2024 / 2025 / 2026). Feste Hoehe, die Liste darunter bleibt
+     die Hauptsache. Der aktuelle Wert voll, die Vorjahre gedaempft. */
+  .saeulen {
+    display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+    column-gap: 36px; align-items: end;
+  }
+  .saeule { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .saeule-wert { font-family: var(--slab); font-weight: 700; font-size: var(--body); white-space: nowrap; }
+  .saeule-spur { height: 190px; width: 100%; display: flex; align-items: flex-end; }
+  .saeule-fill { width: 100%; border-radius: 14px 14px 0 0; background: var(--navy); min-height: 6px; }
+  .on-ink .saeule-fill { background: var(--off-white); }
+  .saeule.muted .saeule-fill { background: rgba(34, 51, 65, 0.38); }
+  .on-ink .saeule.muted .saeule-fill { background: rgba(250, 250, 248, 0.42); }
+  .saeule-label { font-size: var(--small); opacity: 0.75; }
+  .saeulen-note { margin-top: -18px; }
+
+  /* Lager: zwei Bloecke mit farbiger Kante - Akzentblau gegen die
+     Textfarbe -, dazwischen eine Haarlinie mit "gegen". Keine Parteifarben,
+     keine Richtungsfarben: wer "recht hat", sagt die Karte nicht. */
+  .lagerfeld { display: flex; flex-direction: column; gap: 26px; }
+  /* "lagerblock", nicht "lager": die Section traegt den Slide-Namen als
+     Klasse, ".lager" setzte die Kante an die ganze Slide. */
+  .lagerblock { border-left: 8px solid var(--accent); padding-left: 28px;
+                display: flex; flex-direction: column; gap: 22px; }
+  .lagerblock-2 { border-left-color: currentColor; }
+  .lager-titel { font-family: var(--slab); font-weight: 700; font-size: var(--body);
+                 line-height: 1.2; color: var(--accent-deep); }
+  .on-ink .lager-titel { color: var(--accent); }
+  .lagerblock-2 .lager-titel { color: inherit; }
+  .lagerblock .position .kopfzeile { margin-bottom: 6px; }
+  .lagerblock .position img.logo { height: 44px; min-width: 44px; padding: 4px; }
+  .lagerblock .position .org { font-size: var(--small); }
+  .gegen { display: flex; align-items: center; gap: 18px; font-size: var(--small);
+           opacity: 0.75; }
+  .gegen::before, .gegen::after { content: ""; flex: 1; border-top: 2px solid currentColor; opacity: 0.4; }
+
+  /* Positionen: je Organisation Kopfzeile mit Logo, darunter ein Satz. */
+  .positionen { display: flex; flex-direction: column; gap: 44px; }
+  .position .kopfzeile {
+    display: flex; align-items: center; gap: 18px; margin-bottom: 12px;
+  }
+  .position .org { font-size: var(--body); font-weight: 700; }
+  .position p { text-wrap: pretty; opacity: 0.9; }
 
   /* --- Signatur 7: Sitzbogen ------------------------------------------ */
 
@@ -340,10 +489,21 @@
   }
   .bar-track {
     height: 26px; border-radius: 100px; background: rgba(21, 27, 32, 0.14);
-    overflow: hidden;
+    overflow: hidden; position: relative;
   }
   .on-ink .bar-track { background: rgba(250, 250, 248, 0.18); }
-  .bar-fill { height: 100%; border-radius: 100px; background: var(--navy); }
+  .bar-fill {
+    position: absolute; top: 0; bottom: 0;
+    border-radius: 100px; background: var(--navy);
+  }
+  /* Nulllinie fuer Reihen mit negativen Werten: sie ragt ueber die Spur
+     hinaus, damit sie auch neben einem langen Balken als Linie lesbar bleibt. */
+  .bars.divergent .bar-track { overflow: visible; }
+  .bar-null {
+    position: absolute; left: calc(50% - 2px); top: -9px; bottom: -9px;
+    width: 4px; border-radius: 2px; background: var(--navy);
+  }
+  .on-ink .bar-null { background: var(--off-white); }
   .on-ink .bar-fill { background: var(--off-white); }
   .bar-row.muted .bar-fill { background: rgba(34, 51, 65, 0.38); }
   .on-ink .bar-row.muted .bar-fill { background: rgba(250, 250, 248, 0.42); }
@@ -354,6 +514,18 @@
   }
   .on-ink .bar-row.nein .bar-track { border-color: rgba(250, 250, 248, 0.45); }
   .bar-row.nein .bar-fill { display: none; }
+  /* Richtungsfarben: nur wo das Modell "mehr ist besser" angegeben hat
+     (chart.wertung = hoch_gut). Zwei Toene je Grund, damit Zahl und Balken
+     auf hellem wie auf dunklem Grund den Kontrast halten. */
+  .bar-row.gut .bar-fill        { background: var(--gut); }
+  .bar-row.schlecht .bar-fill   { background: var(--schlecht); }
+  .bar-row.gut .bar-value       { color: var(--gut); }
+  .bar-row.schlecht .bar-value  { color: var(--schlecht); }
+  .on-ink .bar-row.gut .bar-fill       { background: var(--gut-hell); }
+  .on-ink .bar-row.schlecht .bar-fill  { background: var(--schlecht-hell); }
+  .on-ink .bar-row.gut .bar-value      { color: var(--gut-hell); }
+  .on-ink .bar-row.schlecht .bar-value { color: var(--schlecht-hell); }
+  .bar-row.muted.gut .bar-fill, .bar-row.muted.schlecht .bar-fill { opacity: 0.5; }
 
   /* --- Signatur 3: Pill-Reihen fuer Zahlenlisten ---------------------- */
 
@@ -539,6 +711,14 @@
     </div>
     <figure class="cover-foto"><img src="{{ bild.data_uri }}" alt=""></figure>
 
+  {% elif cover_variante in ('1g', '1h', '1i') %}
+    {% if cover_variante == '1i' %}<div class="kreis"></div>{% else %}<div class="feld"></div>{% endif %}
+    <img class="person" src="{{ portraet.data_uri }}" alt="">
+    <div class="cover-text">
+      <h1>{{ headline_html | safe }}</h1>
+      {{ copy(lead_saetze) }}
+    </div>
+
   {% elif cover_variante == '1f' %}
     <figure class="cover-foto"><img src="{{ bild.data_uri }}" alt=""></figure>
     <div class="band">
@@ -579,20 +759,21 @@
         <div class="legende">
           {% for f in bogen.legende %}
             <div><span class="swatch" style="background: {{ f.farbe }}"></span>
+              {% for l in f.logos if l %}<img class="logo klein" src="{{ l }}" alt="">{% endfor %}
               <span>{{ f.name }}: {{ f.ja }} Ja von {{ f.sitze }}</span></div>
           {% endfor %}
           <div><span class="swatch hohl"></span>
             <span>hohler Punkt: dagegen oder enthalten</span></div>
         </div>
       {% else %}
-        <div class="bars">
+        <div class="bars{% if chart.divergent %} divergent{% endif %}">
           {% for bar in chart.balken %}
             <div class="bar-row {{ bar.tonung }}">
               <div class="bar-label">
-                <span>{{ bar.label | betrag }}</span>
+                <span class="bar-name">{% if bar.logo %}<img class="logo{% if bar.logo is ohne_kachel %} ohne-kachel{% endif %}" src="{{ bar.logo }}" alt="">{% endif %}{{ bar.label | betrag }}</span>
                 <span class="bar-value">{{ bar.anzeige | safe }}</span>
               </div>
-              <div class="bar-track"><div class="bar-fill" style="width: {{ bar.prozent }}%"></div></div>
+              <div class="bar-track">{% if chart.divergent %}<div class="bar-null"></div>{% endif %}<div class="bar-fill" style="left: {{ bar.links }}%; width: {{ bar.prozent }}%"></div></div>
             </div>
           {% endfor %}
         </div>
@@ -604,13 +785,17 @@
          gerechneten Beispiel. #}
       <div class="card">
         <div class="begriff-karte">
-          <div class="badge" style="grid-row: span {{ begriff.saetze | length + (1 if begriff.beispiel else 0) }}">?</div>
+          {% if begriff_logo %}
+            <div class="badge logo-badge" style="grid-row: span {{ begriff.saetze | length + (1 if begriff.beispiel else 0) }}"><img src="{{ begriff_logo }}" alt=""></div>
+          {% else %}
+            <div class="badge" style="grid-row: span {{ begriff.saetze | length + (1 if begriff.beispiel else 0) }}">?</div>
+          {% endif %}
           {% for satz in begriff.saetze %}<p>{{ satz | betrag }}</p>{% endfor %}
           {% if begriff.beispiel %}<p class="beispiel">{{ begriff.beispiel | betrag }}</p>{% endif %}
         </div>
       </div>
       {% if begriff.warum %}
-        <p class="kartentitel" style="margin: 0">Warum überhaupt ändern?</p>
+        <p class="kartentitel" style="margin: 0">{{ nachtitel or 'Warum überhaupt ändern?' }}</p>
         <ul class="arrows">
           {% for grund in begriff.warum %}
             <li><span class="mark">&rarr;</span><span class="txt">{{ grund | betrag }}</span></li>
@@ -618,8 +803,54 @@
         </ul>
       {% endif %}
 
+    {% elif kind == 'lager' %}
+      {# Zwei Lager, die sich gegenueberstehen: je Lager ein Kopf mit der
+         Forderung, darunter die Organisationen. Dazwischen "gegen". #}
+      <div class="lagerfeld">
+        {% for l in lager %}
+          {% if not loop.first %}<div class="gegen"><span>gegen</span></div>{% endif %}
+          <div class="lagerblock lagerblock-{{ loop.index }}">
+            <p class="lager-titel">{{ l.titel | betrag }}</p>
+            {% for p in l.positionen %}
+              <div class="position">
+                <div class="kopfzeile">{% if p.logo %}<img class="logo{% if p.logo is ohne_kachel %} ohne-kachel{% endif %}" src="{{ p.logo }}" alt="">{% endif %}<span class="org">{{ p.name }}</span></div>
+                <p>{{ p.satz | betrag }}</p>
+              </div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+      </div>
+      {% if hinweis %}<p class="note">{{ hinweis | betrag }}</p>{% endif %}
+
+    {% elif kind == 'positionen' %}
+      {# Wer was wollte: je Organisation Logo, Name und ein Satz aus ihrer
+         eigenen Stellungnahme (Lobbyregister). #}
+      <div class="positionen">
+        {% for p in positionen %}
+          <div class="position">
+            <div class="kopfzeile">{% if p.logo %}<img class="logo{% if p.logo is ohne_kachel %} ohne-kachel{% endif %}" src="{{ p.logo }}" alt="">{% endif %}<span class="org">{{ p.name }}</span></div>
+            <p>{{ p.satz | betrag }}</p>
+          </div>
+        {% endfor %}
+      </div>
+      {% if hinweis %}<p class="note">{{ hinweis | betrag }}</p>{% endif %}
+
     {% elif kind == 'context' %}
-      {# Rueckfall fuer Decks ohne Begriffskarte (Profil-Modus). #}
+      {# Rueckfall fuer Decks ohne Begriffskarte (Profil-Modus). Datenkarussells
+         setzen davor eine kleine Saeulenreihe, wenn es einen Jahresvergleich
+         gibt (seite.saeulen). #}
+      {% if saeulen %}
+        <div class="saeulen">
+          {% for s in saeulen.balken %}
+            <div class="saeule {{ s.tonung }}">
+              <span class="saeule-wert">{{ s.anzeige | safe }}</span>
+              <div class="saeule-spur"><div class="saeule-fill" style="height: {{ s.prozent }}%"></div></div>
+              <span class="saeule-label">{{ s.label | betrag }}</span>
+            </div>
+          {% endfor %}
+        </div>
+        {% if saeulen.hinweis %}<p class="note saeulen-note">{{ saeulen.hinweis | betrag }}</p>{% endif %}
+      {% endif %}
       <ul class="arrows">
         {% for absatz in context %}
           <li><span class="mark">&rarr;</span><span class="txt">{{ absatz | betrag }}</span></li>
@@ -632,7 +863,7 @@
         <div class="card">
           <div class="vn">
             <span></span>
-            <span class="kopf">bisher</span>
+            <span class="kopf">{{ folgen.kopf_alt or 'bisher' }}</span>
             <span class="kopf neu">{{ folgen.kopf_neu }}</span>
             {% for zeile in folgen.zeilen %}
               <span class="zeile-label">{{ zeile.label | betrag }}</span>

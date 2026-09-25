@@ -26,6 +26,9 @@ Siehe **SETUP.md**. Phase 0 (zwei Wochen von Hand) nicht ueberspringen.
 | `config.py` | Alle Einstellungen: Quellen, Keywords, Modelle |
 | `check_sources.py` | Prueft einmalig, ob die Feeds erreichbar sind |
 | `sources.py` | Holt RSS und Bundestag-DIP, dedupliziert, vorfiltert |
+| `QUELLEN.md` | Jede Quelle: Zugang, Eigenheiten, Fallstricke, offene Fragen |
+| `weitere.py` | Das zweite Karussell: Destatis, Lobbyregister, Parteispenden, Nebentaetigkeiten |
+| `VORLAGEN.md` | Slide-Vorlagen dieser vier Kategorien, mit allen festen Saetzen |
 | `llm.py` | Ranking, Entwurf, Beleg-Verifikation |
 | `render.py` | Baut die 1080x1350-Karten |
 | `DESIGN-SYSTEM.md` | Die Spec, die `templates/card.html` umsetzt |

@@ -3,7 +3,9 @@
 # --- Ausgabe ---------------------------------------------------------------
 # Ein Karussell = Hook, Chart, Context, So what, Newsletter (5 Slides).
 # Pro Lauf werden CAROUSELS_PER_RUN Stueck gebaut und beide nach Telegram
-# geschickt - du postest eines, das zweite ist Reserve fuer den naechsten Slot.
+# geschickt - du waehlst eines aus. Die Rollen sind fest verteilt: eines aus
+# DIP (ein beschlossenes Gesetz), eines aus einer WEITERE_KATEGORIEN, zufaellig
+# gezogen. Liefert DIP nichts, kommen beide aus zwei verschiedenen Kategorien.
 CAROUSELS_PER_RUN = 2
 # Ersatzthemen je Quelle, falls eines die Pruefung nicht besteht. Ohne
 # Reserve kostet ein einziger Durchfaller der Quelle ihren ganzen Slot: der
@@ -74,25 +76,11 @@ PRUEFTEXT_MAX_CHARS = 16000
 REGISTER_LOOKBACK_DAYS = 14
 
 # --- Quellen ---------------------------------------------------------------
-# gewicht: hoeher = wichtiger in der Vorsortierung (Vorfilter-Cap auf 40).
-# tier: geht in den Ranking-Prompt in llm.py, damit das Modell weiss, was
-#   ueberhaupt "wichtig genug fuer den Tagesueberblick" heissen soll:
-#   "kern"    - echte Entscheidungen/Beschluesse/Zahlen, fuer ein breites
-#               Publikum relevant (Gesetze, Urteile, Haushalt, Abstimmungen).
-#   "kontext" - amtlich und korrekt, aber eher Verwaltungs-/Compliance-Info
-#               (Lobbyregister-Eintrag, Ausschuss-Personalie, Nebeneinkuenfte).
-#               Soll nur zum Zug kommen, wenn an dem Tag sonst nichts Besseres
-#               da ist - sonst dominieren diese Quellen den Ueberblick rein
-#               nach Menge, ohne dass sie das eigentlich verdienen.
-# Pruefe jede URL einmal mit `python check_sources.py`, Feeds aendern sich.
-RSS_SOURCES = [
-    {"name": "Bundesregierung Aktuelles", "weight": 3, "tier": "kern",
-     "url": "https://www.bundesregierung.de/service/rss/breg-de/1151244/feed.xml"},
-    {"name": "Destatis Pressemitteilungen", "weight": 3, "tier": "kern",
-     "url": "https://www.destatis.de/SiteGlobals/Functions/RSSFeed/DE/RSSNewsfeed/Aktuell.xml"},
-    {"name": "Bundesbank", "weight": 2, "tier": "kern",
-     "url": "https://www.bundesbank.de/service/rss/de/633286/feed.rss"},
-]
+# Eigenheiten jeder Quelle, gemessen und mit Beispielen: QUELLEN.md.
+# Pruefe die Adressen einmal mit `python check_sources.py`, Feeds aendern sich.
+
+# Statistisches Bundesamt: die letzten zehn Pressemitteilungen.
+DESTATIS_FEED = "https://www.destatis.de/SiteGlobals/Functions/RSSFeed/DE/RSSNewsfeed/Aktuell.xml"
 
 # Bundestag DIP API (Drucksachen, Vorgaenge, Plenarprotokolle)
 DIP_ENABLED = True
@@ -104,28 +92,6 @@ DIP_BASE = "https://search.dip.bundestag.de/api/v1"
 # derselbe Titel noch einmal da. Damit konnte ein DIP-Item die Belegpruefung
 # in llm.verify_slides() gar nicht bestehen.
 DIP_VORGANGSTYP = "Gesetzgebung"
-
-# Quellen werden NICHT mehr alle auf einmal gelesen, sondern der Reihe nach.
-# Erst DIP; kommt daraus ein sendefertiges Karussell, ist Schluss. Sonst die
-# naechste Stufe. Zwei Gruende:
-#
-#  - Qualitaet. Vorher konkurrierten 23 Tagesordnungspunkte (Ankuendigungen
-#    kuenftiger Debatten) mit 10 beschlossenen Gesetzen um zwei Plaetze.
-#    Jetzt kommt das Schwaechere nur dran, wenn das Staerkere nichts hergibt.
-#  - Zeit. Gemessen am 16.09.2026, jeder Fetcher einzeln: fetch_dip braucht
-#    1,6 Sekunden, fetch_bundespuls 80, fetch_ausschuesse 65, fetch_tages-
-#    ordnung 53, fetch_lobbyregister 53. Alles zusammen kostete rund 60
-#    Sekunden pro Lauf - fuer Quellen, die an guten Tagen niemand braucht.
-#
-# "bauart" sagt, wer aus den Items ein Karussell macht: "llm" ist die
-# normale Strecke (Auswahl, Recherche, Entwurf, zwei Pruefungen), "profil"
-# der deterministische Weg aus profile_mode, der ohne Schreibmodell auskommt.
-QUELLEN_STUFEN = [
-    ("DIP Gesetzgebung", ["fetch_dip"],               "llm"),
-    ("Lobbyregister",    ["fetch_lobbyregister"],     "llm"),
-    ("Nebentaetigkeiten", ["fetch_nebentaetigkeiten"], "profil"),
-    ("Parteispenden",    ["fetch_parteispenden"],     "llm"),
-]
 
 # Serverseitig filtern spart das Aussortieren im Modell: in einer Woche waren
 # 433 von 800 Vorgaengen Schriftliche Fragen und 175 Kleine Anfragen - also
@@ -149,7 +115,6 @@ DIP_BESCHLOSSEN = {
 ENTSCHIEDEN_QUELLEN = (
     "Bundestag, Vorgang ",
     "namentliche Abstimmung",
-    "Bundespuls Abstimmungen",
 )
 
 # Gesetze werden in Sitzungswochen beschlossen, nicht gleichmaessig ueber den
@@ -184,53 +149,114 @@ DIP_DRUCKSACHE_REIHENFOLGE = [
     "Gesetzentwurf",
 ]
 
-# Abgeordnetenwatch: namentliche Abstimmungen (kein Key noetig, CC0)
-AOW_ENABLED = True
-AOW_PARLIAMENT_ID = 5      # 5 = Bundestag
-
-# Bundespuls: Aggregator-Feeds (RSS, kein Key, CC0-Rohdaten via DIP/AOW).
-# Bewusst nur die drei Teil-Feeds, nicht zusaetzlich /feed (Master), sonst
-# gibt es dieselben Meldungen doppelt. Plenarprotokolle sind nur ein PDF-
-# Link ohne Volltext (siehe fetch_bundespuls-Kommentar) - tier "kontext".
-BUNDESPULS_ENABLED = True
-BUNDESPULS_FEEDS = [
-    {"name": "Bundespuls Vorgänge", "weight": 3, "tier": "kern",
-     "url": "https://bundespuls.de/feed/vorgang"},
-    {"name": "Bundespuls Abstimmungen", "weight": 3, "tier": "kern",
-     "url": "https://bundespuls.de/feed/abstimmung"},
-    {"name": "Bundespuls Plenarprotokolle", "weight": 2, "tier": "kontext",
-     "url": "https://bundespuls.de/feed/plenarprotokoll"},
-]
-
-# Bundestag Live-API: Tagesordnung der Plenarsitzungen (XML, kein Key).
-# Mit Artikeltext (tier "kern", siehe fetch_tagesordnung) oder nur mit
-# Titel (tier "kontext" - besteht die Beleg-Pruefung ohnehin fast nie).
-TAGESORDNUNG_ENABLED = True
-TAGESORDNUNG_URL = "https://www.bundestag.de/static/appdata/plenum/v2/conferences.xml"
-
-# Lobbyregister: neu registrierte/aktualisierte Eintraege (JSON, kein Key
-# noetig fuer die Suche-Schnittstelle des Web-Frontends).
-LOBBYREGISTER_ENABLED = True
+# Lobbyregister: Suche des Web-Frontends (kein Key) und API v2 (oeffentlicher
+# Key von der Open-Data-Seite; ein eigener Dauerkey per Mail an
+# lobbyregister@bundestag.de, dann als LOBBYREGISTER_API_KEY in die .env).
 LOBBYREGISTER_URL = "https://www.lobbyregister.bundestag.de/sucheJson"
+LOBBYREGISTER_API = "https://api.lobbyregister.bundestag.de/rest/v2"
+LOBBYREGISTER_API_KEY = "5bHB2zrUuHR6YdPoZygQhWfg2CBrjUOi"
 
 # Parteispenden ueber 35.000 Euro nach § 25 PartG (HTML-Tabelle je Jahr).
-PARTEISPENDEN_ENABLED = True
 PARTEISPENDEN_URL = "https://www.bundestag.de/parlament/praesidium/parteienfinanzierung/fundstellen50000"
 
-# Einzelstimmen: Fraktionen, die bei einer namentlichen Abstimmung nicht
-# einheitlich gestimmt haben (abgeordnetenwatch /votes, kein Key noetig).
-# Ab wie vielen Abweichlern (Minderheitsseite unter Ja/Nein/Enthaltung) das
-# als meldenswert gilt - verhindert Rauschen durch einzelne Ausreisser.
-EINZELSTIMMEN_ENABLED = True
-EINZELSTIMMEN_MIN_ABWEICHLER = 2
-
-# Nebeneinkuenfte der Abgeordneten (abgeordnetenwatch /sidejobs, kein Key).
-NEBENTAETIGKEITEN_ENABLED = True
+# Nebentaetigkeiten: Quelle sind die veroeffentlichungspflichtigen Angaben
+# des Bundestages, abgefragt ueber abgeordnetenwatch (/sidejobs, CC0).
 NEBENTAETIGKEITEN_URL = "https://www.abgeordnetenwatch.de/recherchen/nebentaetigkeiten"
 
-# Ausschuesse: Besetzungsaenderungen (Bundestag XML, kein Key noetig).
-AUSSCHUESSE_ENABLED = True
-AUSSCHUESSE_INDEX_URL = "https://www.bundestag.de/xml/v2/ausschuesse/index.xml"
+# --- Weitere Kategorien (das zweite Karussell) -----------------------------
+# Jeden Tag wird eine davon zufaellig gezogen. Liefert sie nichts Brauchbares,
+# kommt die naechste dran. Aufbau der Slides je Kategorie: weitere.py.
+WEITERE_KATEGORIEN = ["destatis", "lobbyregister", "parteispenden",
+                      "nebentaetigkeiten"]
+
+# Lobbyregister: "Wer hat zu diesem Gesetz lobbyiert" braucht mindestens so
+# viele Organisationen, sonst ist es keine Geschichte - dann Drehtuer oder
+# Ausgaben-Rangliste. Gezaehlt werden nur Eintraege, deren Regelungsvorhaben
+# nachweislich auf den Vorgang verweisen (einzeln in der API geprueft).
+LOBBY_MIN_ORGANISATIONEN = 10
+# Die grossen Gesetze ziehen die meiste Lobbyarbeit an, werden aber nicht jede
+# Woche beschlossen: im 21-Tage-Fenster von DIP lag am 25.09.2026 kein Gesetz
+# mit mehr als 13 Eintraegen, das Gebaeudemodernisierungsgesetz (61) vom Juli
+# war schon draussen. 60 Tage brachten nach der Sommerpause dieselben zehn
+# Gesetze, 90 Tage 31. Jedes Gesetz kommt trotzdem nur einmal dran (seen.json).
+LOBBY_GESETZE_TAGE = 90
+# Drehtuer: nur ehemalige Regierungsmitglieder, keine Mitarbeitenden. Wer das
+# Amt noch innehat, sitzt meist kraft Amtes in einem Stiftungsgremium - das
+# ist keine Drehtuer.
+DREHTUER_FUNKTIONEN = {"MINISTER", "PARLIAMENTARY_STATE_SECRETARY"}
+# Ausgaben-Rangliste: erst insgesamt, dann je Themenfeld. Jede Variante
+# einmal je Geschaeftsjahr.
+LOBBY_RANG_THEMEN = [
+    (None, ""),
+    ("FOI_HEALTH", "Gesundheit"),
+    ("FOI_ENERGY", "Energie"),
+    ("FOI_DEFENSE", "Verteidigung"),
+    ("FOI_ENVIRONMENT", "Umwelt"),
+    ("FOI_TRANSPORTATION", "Verkehr"),
+    ("FOI_MEDIA", "Medien und Digitales"),
+]
+
+# Parteispenden: eine einzelne Spende ab diesem Betrag, eingegangen in den
+# letzten SPENDE_TAGE Tagen, bekommt ein eigenes Karussell. Sonst die
+# Jahresbilanz nach Partei (hoechstens einmal im Monat).
+SPENDE_GROSS = 100_000
+SPENDE_TAGE = 14
+# Jahresbilanz: so viele Parteien als Balken, der Rest steht im Hinweis.
+SPENDEN_JAHR_BALKEN = 5
+
+# Lobby zu einem Gesetz: so viele Organisationen mit ihrer Position auf der
+# Slide "Was sie wollten". Weniger als LOBBY_POSITIONEN_MIN belegte
+# Positionen - dann ist es kein Karussell, das naechste Gesetz ist dran.
+LOBBY_POSITIONEN = 3
+LOBBY_POSITIONEN_MIN = 2
+# Mit zwei Lagern: so viele Kandidaten gehen ans Modell, und hoechstens so
+# viele Organisationen stehen je Lager auf der Slide.
+LOBBY_KANDIDATEN = 8
+LOBBY_JE_LAGER = 2
+# Auszug je Stellungnahme fuer Modell UND Faktencheck (derselbe Text).
+LOBBY_AUSZUG = 2800
+
+# Nebentaetigkeiten: diese Abgeordneten der Reihe nach, keiner zweimal, bevor
+# alle dran waren. Wer in den letzten REGISTER_LOOKBACK_DAYS Tagen neue
+# Meldungen hat, kommt zuerst. Die Reserve rueckt nach, wenn jemand kein
+# aktuelles Mandat mehr hat oder zu wenig gemeldet ist.
+POLITIKER_BACKLOG = [
+    "Friedrich Merz", "Jens Spahn", "Armin Laschet", "Norbert Röttgen",
+    "Carsten Linnemann", "Lars Klingbeil", "Bärbel Bas", "Matthias Miersch",
+    "Alice Weidel", "Tino Chrupalla", "Beatrix von Storch", "Omid Nouripour",
+    "Ricarda Lang", "Gregor Gysi", "Heidi Reichinnek",
+]
+# Ein Personen-Karussell braucht einen Befund (Abstimmung 25.09.2026): einen
+# gemeldeten Betrag, ODER eine deutliche Aenderung der Zahl verschiedener
+# Taetigkeiten gegenueber der vorigen Wahlperiode - mindestens so viele und
+# mindestens um die Haelfte. Sonst ist es eine Liste ohne Aussage.
+NEBEN_AENDERUNG_MIN = 4
+NEBEN_AENDERUNG_ANTEIL = 0.5
+# Vorige Wahlperiode bei abgeordnetenwatch (Bundestag 2021 - 2025).
+NEBEN_PERIODE_VORHER = 132
+# Vergleichsbasis "Ø Bundestag": alle Sitze, auch wer nichts gemeldet hat.
+ABGEORDNETE = 630
+
+POLITIKER_RESERVE = ["Julia Klöckner", "Saskia Esken", "Stephan Brandner",
+                     "Britta Haßelmann", "Sören Pellmann"]
+
+# Kategorien der Nebentaetigkeiten, wie die Bundestagsverwaltung sie fuehrt
+# (Codes laut abgeordnetenwatch-Doku). Links die amtliche Bezeichnung, rechts
+# die kurze fuer den Balken.
+NEBEN_KATEGORIEN = {
+    "29647": ("Entgeltliche Tätigkeiten neben dem Mandat", "Bezahlte Tätigkeiten"),
+    "29228": ("Funktionen in Unternehmen", "Funktionen in Unternehmen"),
+    "29229": ("Funktionen in Körperschaften und Anstalten des öffentlichen Rechts",
+              "Öffentliche Einrichtungen"),
+    "29230": ("Funktionen in Vereinen, Verbänden und Stiftungen",
+              "Vereine und Stiftungen"),
+    "29231": ("Beteiligung an Kapital- oder Personengesellschaften", "Beteiligungen"),
+    "29232": ("Spenden/Zuwendungen für politische Tätigkeit", "Spenden, Zuwendungen"),
+    "29233": ("Vereinbarungen über künftige Tätigkeiten oder Vermögensvorteile",
+              "Vereinbarungen"),
+    "29234": ("Berufliche Tätigkeit vor der Mitgliedschaft im Deutschen Bundestag",
+              "Beruf vor dem Mandat"),
+}
 
 # --- Recherche (Websuche fuer Context- und So-what-Slide) ------------------
 # Das Modell darf ueber unsere amtlichen Quellen hinaus recherchieren, aber
@@ -262,6 +288,10 @@ EFFORT_JUDGE = "low"
 # Mit den Feldern begriff und folgen ist der Entwurf laenger geworden; 12000
 # hat dafuer nicht mehr gereicht.
 DRAFT_MAX_TOKENS = 24000
+# Lobby-Positionen, Gesetzeskarte, Spenderportraet: kurze JSON-Antworten,
+# aber das Modell denkt vorher nach. Mit 1.200 kam bei acht Kandidaten gar
+# kein Textblock zurueck ("keine Textantwort", 25.09.2026).
+DATEN_MAX_TOKENS = 8000
 
 JUDGE_MAX_TOKENS = 2000
 

@@ -14,6 +14,7 @@ from playwright.sync_api import sync_playwright
 import bilder
 import config
 import cover
+import logos
 import sitzbogen
 
 OUT = Path("out")
@@ -194,7 +195,7 @@ def _headline(text: str) -> str:
     if len(laengstes) > HEADLINE_WORT_MAX:
         print(f"    ! Kompositum in der Headline ({len(laengstes)} Zeichen), "
               f"wird getrennt: {laengstes}")
-    return _block(text)
+    return _mit_parteilogos(text, _block)
 
 
 def _cover_headline(text: str) -> str:
@@ -216,7 +217,90 @@ def _zahl(wert: float) -> str:
     return f"{wert:.1f}".replace(".", ",")
 
 
-def _chart_daten(chart: dict) -> dict:
+# Parteien, wie sie in Schlagzeilen und Balkenbeschriftungen stehen, auf den
+# Schluessel der Logo-Handliste (data/logos/logos.json). Gross geschrieben
+# und als ganzes Wort: "linke Mehrheit" oder "gruener Wasserstoff" bleiben
+# Text. Laengere Formen zuerst, sonst frisst "CDU" das "CDU/CSU".
+PARTEIEN = [("CDU/CSU", ("CDU", "CSU")), ("Bündnis 90/Die Grünen", ("Grüne",)),
+            ("Grünen", ("Grüne",)), ("Grüne", ("Grüne",)), ("Linken", ("Linke",)),
+            ("Linke", ("Linke",)), ("CDU", ("CDU",)), ("CSU", ("CSU",)),
+            ("SPD", ("SPD",)), ("AfD", ("AfD",)), ("FDP", ("FDP",)),
+            ("BSW", ("BSW",)), ("SSW", ("SSW",)), ("Volt", ("Volt",))]
+_PARTEI = re.compile(
+    r"(?<![\w/])(?:(?:[Dd]ie|[Dd]er|[Dd]as|[Dd]en|[Dd]em)\s+)?(?P<p>"
+    + "|".join(re.escape(p) for p, _ in PARTEIEN) + r")(?![\w/])")
+_PARTEI_LOGOS = dict(PARTEIEN)
+
+# Die Logos einer Slide-Folge, gesammelt fuer die Caption. build_carousel
+# setzt die Liste je Karussell neu; die Headline-Funktionen haengen an.
+_KOPF_CREDITS: list = []
+
+
+def _partei_in(text: str) -> str | None:
+    """Logo-Schluessel der ersten Partei im Text, oder None."""
+    treffer = _PARTEI.search(text or "")
+    return _PARTEI_LOGOS[treffer.group("p")][0] if treffer else None
+
+
+def _partei_img(partei: str) -> str:
+    """Die Logos einer Partei als Inline-Bilder fuer eine Schlagzeile. Ohne
+    Logo bleibt der Name stehen - nie ein leerer Platz."""
+    bilder = [_logo(k, _KOPF_CREDITS) for k in _PARTEI_LOGOS[partei]]
+    if not all(bilder):
+        return escape(partei)
+    return "".join(f'<img class="partei-logo{" ohne-kachel" if b in _OHNE_KACHEL else ""}" '
+                   f'src="{b}" alt="{escape(k)}">'
+                   for b, k in zip(bilder, _PARTEI_LOGOS[partei]))
+
+
+def _mit_parteilogos(text: str, bauer) -> str:
+    """Schlagzeile mit Parteilogo statt Parteiname (Abstimmung 25.09.2026:
+    in Kopfzeilen immer das Logo, im Fliesstext der Name).
+
+    Steht die Partei am Ende ("Grossspende an die Gruenen"), traegt das Wort
+    davor die Akzentbewegung - ein Logo im Highlight-Block waere ein
+    Etikett auf einem Etikett. Der Artikel faellt mit dem Namen weg: "an
+    [Logo]" liest sich, "an die [Logo]" nicht.
+    """
+    text = (text or "").strip()
+    ende = None
+    for t in _PARTEI.finditer(text):
+        ende = t
+    if ende and not text[ende.end():].strip(" .!?"):
+        kopf = text[:ende.start()].rstrip()
+        # "Grossspende an [Logo]": das "an" ist kein Wort fuer den Block -
+        # markiert wird das Wort davor, das Kurzwort steht dahinter.
+        kurz = ""
+        teile = kopf.rsplit(" ", 1)
+        if len(teile) == 2 and len(teile[1]) <= 4:
+            kopf, kurz = teile[0], f" {escape(teile[1])}"
+        html = bauer(kopf) if kopf else ""
+        # Kurzwort und Logo bleiben zusammen: sonst stand "AN" am Zeilenende
+        # und das Logo allein in der naechsten Zeile.
+        schluss = f'<span class="partei-ende">{kurz.strip()} {_partei_img(ende.group("p"))}</span>'
+        return f'{html} {schluss}'.strip()
+    html = bauer(text)
+    return _PARTEI.sub(lambda t: _partei_img(t.group("p")), html)
+
+
+def _logo(name: str | None, credits: list) -> str:
+    """data-URI des Logos oder "". Der Bildnachweis landet in `credits` und
+    von dort in der Caption - auf der Karte steht er nicht."""
+    gefunden = logos.logo(name) if name else None
+    if not gefunden:
+        return ""
+    credits.append(gefunden["credit"])
+    if not gefunden.get("kachel", True):
+        _OHNE_KACHEL.add(gefunden["data_uri"])
+    return gefunden["data_uri"]
+
+
+# Logos mit eigener Flaeche (logos.json "kachel": false). Das Template fragt
+# per Test "ohne_kachel", ob die weisse Kachel wegfaellt.
+_OHNE_KACHEL: set = set()
+
+
+def _chart_daten(chart: dict, credits: list | None = None) -> dict:
     """Rechnet die Balken auf Prozentbreiten um. Der groesste Balken ist 100 %,
     damit auch kleine Unterschiede noch sichtbar bleiben.
 
@@ -229,9 +313,26 @@ def _chart_daten(chart: dict) -> dict:
     titel = re.sub(r"\s*\((?:in\s+)?[^()]{2,12}\)\s*$", "",
                    chart.get("titel", "")).strip()
 
-    balken = list(chart.get("balken", []))[:config.CHART_MAX_BARS]
+    # Ein Datenkarussell darf die Obergrenze fuer sich anheben (Parteien:
+    # fuenf), das Modell nicht - dort bleibt es bei CHART_MAX_BARS.
+    balken = list(chart.get("balken", []))[:chart.get("max_balken") or config.CHART_MAX_BARS]
+    credits = [] if credits is None else credits
     werte = [abs(float(b.get("wert", 0))) for b in balken] or [1]
     groesster = max(werte) or 1
+
+    # Sobald ein Wert negativ ist, laufen die Balken von einer Nulllinie in
+    # der Mitte aus: Anstiege nach rechts, Rueckgaenge nach links. Vorher war
+    # -10,2 % ein Balken fast so lang wie +12,7 % - nur das Minuszeichen
+    # verriet die Richtung. Ohne negative Werte bleibt alles linksbuendig.
+    divergent = any(float(b.get("wert", 0)) < 0 for b in balken)
+
+    # Farbe nur auf ausdrueckliche Wertung des Modells, aus Sicht der
+    # meisten Haushalte: "hoch_gut" (Loehne: Anstieg gruen) oder
+    # "hoch_schlecht" (Preise, Unfaelle: Anstieg rot, Rueckgang gruen - seit
+    # 25.09.2026, vorher blieben Hauspreise grau). Ohne Angabe neutral navy.
+    wertung = chart.get("wertung")
+    farbig = wertung in ("hoch_gut", "hoch_schlecht")
+    umgekehrt = wertung == "hoch_schlecht"
 
     markiert = chart.get("hervorheben")
     if not isinstance(markiert, int) or not 0 <= markiert < len(balken):
@@ -244,16 +345,35 @@ def _chart_daten(chart: dict) -> dict:
         label = b.get("label", "")
         # Die Einheit steht am Balken, und nur dort. Eine Zeile "Angaben in
         # Prozent" unter einer Reihe von "4,6 %" sagt denselben Fakt zweimal.
+        anteil = abs(wert) / groesster
+        if divergent:
+            breite = max(round(anteil * 50, 1), 1)
+            links = 50 if wert >= 0 else 50 - breite
+        else:
+            breite, links = max(round(anteil * 100), 2), 0
+        richtung = ""
+        if farbig and wert != 0:
+            richtung = "gut" if (wert > 0) != umgekehrt else "schlecht"
+        # Ablehnung und offener Stand bekommen die leere Kontur, der Balken
+        # der Meldung die volle Farbe, der Rest gedaempft.
+        tonung = ("nein" if label.strip().lower().startswith(NEGATIV)
+                  else "" if i == markiert else "muted")
         aufbereitet.append({
             "label": label,
-            "anzeige": _wert(f"{_zahl(wert)} {einheit}".strip()),
-            "prozent": max(round(abs(wert) / groesster * 100), 2),
-            # Ablehnung und offener Stand bekommen die leere Kontur, der
-            # Balken der Meldung volles Navy, der Rest gedaempft.
-            "tonung": ("nein" if label.strip().lower().startswith(NEGATIV)
-                       else "" if i == markiert else "muted"),
+            # Ein Bauer darf die Anzeige vorgeben: bei Nebentaetigkeiten
+            # steht der gemeldete Betrag mit Zeitraum ("11.227 € / Monat"),
+            # die Balkenlaenge folgt dem Jahreswert.
+            "anzeige": _wert(b["anzeige"]) if b.get("anzeige")
+            else _wert(f"{_zahl(wert)} {einheit}".strip()),
+            "prozent": breite,
+            "links": links,
+            "tonung": f"{tonung} {richtung}".strip(),
+            # Parteien tragen in Diagrammen IMMER ihr Logo (25.09.2026), auch
+            # wenn der Bauer keins angegeben hat - etwa beim Modell-Chart.
+            "logo": _logo(b.get("logo") or _partei_in(label), credits),
         })
-    return {**chart, "titel": titel, "balken": aufbereitet}
+    return {**chart, "titel": titel, "balken": aufbereitet,
+            "divergent": divergent}
 
 
 # Die Teaserzeile unter der Schlagzeile ist eine Zeile, kein Absatz.
@@ -355,8 +475,8 @@ def _cover(slides: dict, item: dict, bild_thema: dict | None, zuletzt: list,
         "ground": grund,
         # Genau eine Akzentbewegung je Cover: auf Ink akzentblaue Woerter, auf
         # hellem Grund der Highlight-Block. Nie beides.
-        "headline_html": (_cover_headline(kopf) if grund == "ink"
-                          else _block(kopf)),
+        "headline_html": _mit_parteilogos(
+            kopf, _cover_headline if grund == "ink" else _block),
         # Ein <div> je Satz: wo ein Umbruch sitzen soll, wird er strukturell
         # gesagt. Zwei Zeilen sind das Maximum, drei gibt es nicht.
         "lead_saetze": [zeile] if zeile else [],
@@ -582,6 +702,49 @@ def _folgen(slides: dict) -> dict | None:
     return None
 
 
+def _seite(seite: dict, fundstelle: str, credits: list) -> dict:
+    """Eine vom Datenkarussell vorgegebene Slide in den Template-Kontext.
+
+    kind "context"    - Pfeilliste (`saetze`)
+    kind "begriff"    - Begriffskarte (`begriff` wie beim Modell), optional
+                        mit `logo` (Name der Organisation) im Badge
+    kind "vergleich"  - Tabelle im Muster 4a, mit `kopf_alt`/`kopf_neu`
+    kind "positionen" - Organisationen mit Logo und je einem Satz
+    """
+    art = seite["kind"]
+    ctx = {"headline_html": _headline(seite.get("titel", "")),
+           "foot_source": fundstelle}
+    if art == "context":
+        return {**ctx, "kind": "context", "context": seite.get("saetze", []),
+                # Jahresvergleich als kleine Saeulenreihe ueber der Liste.
+                "saeulen": _chart_daten(seite["saeulen"], credits)
+                if seite.get("saeulen") else None}
+    if art == "begriff":
+        return {**ctx, "kind": "begriff",
+                "begriff": _begriff_kuerzen(seite["begriff"]),
+                "begriff_logo": _logo(seite.get("logo"), credits),
+                "nachtitel": seite.get("nachtitel", "")}
+    if art == "vergleich":
+        folgen = _folgen({"folgen": {**seite, "muster": "4a"}})
+        folgen["kopf_alt"] = seite.get("kopf_alt") or "bisher"
+        return {**ctx, "kind": "folgen", "folgen": folgen}
+    if art == "positionen":
+        return {**ctx, "kind": "positionen",
+                "positionen": [{"name": p["name"], "satz": p["satz"],
+                                "logo": _logo(p.get("logo") or p["name"], credits)}
+                               for p in seite.get("positionen", [])],
+                "hinweis": seite.get("hinweis", "")}
+    if art == "lager":
+        return {**ctx, "kind": "lager",
+                "lager": [{"titel": l["titel"],
+                           "positionen": [{"name": p["name"], "satz": p["satz"],
+                                           "logo": _logo(p.get("logo") or p["name"], credits)}
+                                          for p in l["positionen"]]}
+                          for l in seite["lager"]],
+                "hinweis": seite.get("hinweis", "")}
+    raise ValueError(f"unbekannte Slide-Art {art}")
+
+
 def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> list:
     """Rendert die Slides eines Karussells nach out/karussell_<n>/.
 
@@ -604,6 +767,7 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
 
     env = Environment(loader=FileSystemLoader("templates"))
     env.filters["betrag"] = _betrag_filter
+    env.tests["ohne_kachel"] = lambda uri: uri in _OHNE_KACHEL
     template = env.get_template("card.html")
 
     # Fundstelle im Fuss: jede Fakten-Slide nennt ihre Quelle. Der Name
@@ -612,12 +776,18 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
     # Nachricht, die vor der Freigabe die Quelllinks liefert (SETUP.md 4.3),
     # und ueber die Quellenzeile im Bildtext.
     fundstelle = item["source"]
-    chart = _chart_daten(slides["chart"])
+    credits = []
+    _KOPF_CREDITS.clear()
+    chart = _chart_daten(slides["chart"], credits)
 
     # Sitzbogen, wo es eine namentliche Abstimmung gibt - das ist das
     # Standarddiagramm fuer eine Abstimmung im ganzen Haus. Sonst bleibt es
     # beim Balkenvergleich.
     bogen = sitzbogen.bogen(item.get("abstimmung") or {})
+    # Auch die Legende des Sitzbogens ist ein Diagramm: Logo vor den Namen.
+    for f in (bogen or {}).get("legende", []):
+        f["logos"] = [_logo(k, credits) for k in
+                      _PARTEI_LOGOS.get(f["name"], ())]
 
     # Bild nur aufs Cover, nur wenn ein Thema trifft - sonst None. Wird am
     # Karussell vermerkt, damit build_caption den Foto-Credit mitschickt.
@@ -653,7 +823,8 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
                   if bogen else fundstelle)
 
     pages = [
-        {"kind": "hook", **cover_ctx, "bild": bild},
+        {"kind": "hook", **cover_ctx, "bild": bild,
+         "portraet": slides.get("portraet")},
         {"kind": "chart",
          "headline_html": _headline(chart.get("titel", "")),
          "chart": chart,
@@ -668,23 +839,34 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
     # (Profil-Karussells bauen ihre Slides aus Daten), bleibt es bei der
     # Pfeilliste - ohne Frage-Badge, den gibt es nur auf der Begriffskarte.
     begriff = slides.get("begriff") or {}
-    if begriff.get("saetze"):
+    if slides.get("seiten"):
+        # Datenkarussells (weitere.py) geben ihre Slides nach dem Chart selbst
+        # vor: Begriffskarte, Vergleichstabelle, Positionen, Pfeilliste.
+        pages += [_seite(seite, fundstelle, credits) for seite in slides["seiten"]]
+    elif begriff.get("saetze"):
         pages.append({"kind": "begriff",
                       "headline_html": _headline(begriff.get("titel")
                                                  or "Worum es geht"),
                       "begriff": _begriff_kuerzen(begriff),
+                      # Statistik-Karussells: "Genauer hingeschaut" statt
+                      # "Warum ueberhaupt aendern?" (weitere.destatis).
+                      "nachtitel": slides.get("begriff_nachtitel", ""),
                       "foot_source": fundstelle})
     else:
         pages.append({"kind": "context",
-                      "headline_html": _headline(slides.get("titel", item["title"])),
+                      # Datenkarussells stellen hier ihre eigene Frage
+                      # ("Wer ist der Spender?") - die Cover-Schlagzeile ein
+                      # zweites Mal waere derselbe Satz auf zwei Slides.
+                      "headline_html": _headline(slides.get("context_titel")
+                                                 or slides.get("titel", item["title"])),
                       "context": slides.get("context", []),
                       "foot_source": fundstelle})
 
     # Slide 4: eines der vier Muster, nie freier Fliesstext. Profil-Karussells
     # haben bewusst keine - "was heisst das fuer dich" laesst sich dort nicht
     # serioes beantworten.
-    folgen = _folgen(slides)
-    for zahl in _wiederholte_figur(slides):
+    folgen = None if slides.get("seiten") else _folgen(slides)
+    for zahl in ([] if slides.get("seiten") else _wiederholte_figur(slides)):
         print(f"    ! Slide 4 wiederholt die Zahl {zahl} aus Schlagzeile oder "
               f"Chart - Muster passt vermutlich nicht")
     if folgen:
@@ -692,6 +874,8 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
                       "headline_html": _headline("Was heißt das für dich?"),
                       "folgen": folgen,
                       "foot_source": fundstelle})
+
+    slides["logo_credits"] = list(dict.fromkeys(credits + _KOPF_CREDITS))
 
     pages.append({"kind": "cta",
                   "headline_html": _headline(config.CTA_HEADLINE),
@@ -770,6 +954,13 @@ def build_caption(carousel: dict) -> str:
     bild = carousel.get("bild")
     if bild:
         lines += ["", f"Titelfoto: {bild['fotograf']} / Pexels: {bild['seite']}"]
+
+    # Portraets und Logos stehen unter freier Lizenz (Commons) - die
+    # Nennung gehoert, wie der Pexels-Credit, in den Bildtext.
+    credits = [c for c in [(slides.get("portraet") or {}).get("credit"),
+                           *(slides.get("logo_credits") or [])] if c]
+    if credits:
+        lines += [""] + list(dict.fromkeys(credits))
 
     lines += ["", "#politik #bundestag #deutschland #erklaert"]
     return "\n".join(lines)
