@@ -168,13 +168,44 @@ def _zeilen_deckeln(page, kind: str) -> None:
               f"fuer {zeilen} Zeilen ({kind})")
 
 
+# Das Hauptwort des Karussells ("Tankrabatt"), vom Modell benannt, von
+# build_carousel gesetzt. Steht es in einer Headline, traegt ES die
+# Akzentbewegung - nicht das letzte Wort: "Tankrabatt: Ab Oktober 17 Cent
+# weniger pro Liter" hob sonst "Liter" hervor (26.09.2026).
+_SCHLUESSEL: list = []
+
+
+def _markieren(text: str, klasse: str) -> str | None:
+    """Das Hauptwort in `text` markieren - None, wenn es nicht vorkommt.
+
+    Nur als ganzes Wort und ohne Ruecksicht auf Gross/Klein (Cover setzen
+    versal per CSS, der Text bleibt gemischt). Kommt es mehrfach vor, nur
+    das erste Mal: genau eine Akzentbewegung je Headline.
+    """
+    wort = (_SCHLUESSEL[0] if _SCHLUESSEL else "").strip()
+    if not wort:
+        return None
+    safe = _betrag_zusammenhalten(escape(_ohne_strich(text.strip())))
+    treffer = re.search(rf"(?<!\w){re.escape(str(escape(wort)))}(?!\w)", safe,
+                        re.IGNORECASE)
+    if not treffer:
+        return None
+    html = (safe[:treffer.start()] + f'<span class="{klasse}">{treffer.group()}</span>'
+            + safe[treffer.end():])
+    return html.replace(chr(10), "<br>")
+
+
 def _block(text: str) -> str:
-    """Letztes Wort im Highlight-Block. Genau einer pro Headline.
+    """Hauptwort, sonst letztes Wort im Highlight-Block. Genau einer pro
+    Headline.
 
     Der Block ist das Signaturelement des Decks. Er steht auf den
     Inhalts-Slides und, seit es die sechs Architekturen gibt, auch auf den
     hellen Covern (1c und 1e) - dort ist er die eine Akzentbewegung.
     """
+    markiert = _markieren(text, "hl")
+    if markiert:
+        return markiert
     kopf, trenner, schluss = _teilen(text)
     if kopf is None:
         return f'<span class="hl">{schluss}</span>'
@@ -203,7 +234,11 @@ def _cover_headline(text: str) -> str:
 
     Der Block wuerde auf der versal gesetzten Cover-Zeile wie ein Etikett
     wirken. Auf dunklem Grund loest die Spec das Cover deshalb ueber Farbe.
+    Wie beim Block: das Hauptwort, sonst das letzte Wort.
     """
+    markiert = _markieren(text, "accent")
+    if markiert:
+        return markiert
     kopf, trenner, schluss = _teilen(text)
     if kopf is None:
         return f'<span class="accent">{schluss}</span>'
@@ -778,6 +813,9 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
     fundstelle = item["source"]
     credits = []
     _KOPF_CREDITS.clear()
+    _SCHLUESSEL.clear()
+    if slides.get("schluesselwort"):
+        _SCHLUESSEL.append(str(slides["schluesselwort"]))
     chart = _chart_daten(slides["chart"], credits)
 
     # Sitzbogen, wo es eine namentliche Abstimmung gibt - das ist das
@@ -826,7 +864,10 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
         {"kind": "hook", **cover_ctx, "bild": bild,
          "portraet": slides.get("portraet")},
         {"kind": "chart",
-         "headline_html": _headline(chart.get("titel", "")),
+         # Mit Bogen zeigt die Slide die Abstimmung, nicht mehr das Diagramm
+         # des Modells - dessen Titel ("Steuerausfall ...") passte dann nicht.
+         "headline_html": _headline("So hat der Bundestag abgestimmt" if bogen
+                                    else chart.get("titel", "")),
          "chart": chart,
          "bogen": bogen,
          # Im Bogen steht die noetige Mehrheit schon in der Mitte; sie hier
@@ -861,6 +902,20 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
                                                  or slides.get("titel", item["title"])),
                       "context": slides.get("context", []),
                       "foot_source": fundstelle})
+
+    # "Was fruehere Faelle zeigen": nur, wenn llm.formfehler sie stehen
+    # gelassen hat - also mit gepruefter Fundstelle der Recherche. Im Fuss
+    # steht, wer ausgewertet hat, nicht die amtliche Quelle: die Zahlen
+    # stammen von dort.
+    vergleich = (slides.get("vergleich") or {}).get("punkte") or []
+    if vergleich and not slides.get("seiten"):
+        stellen = [f["stelle"] for f in
+                   (carousel.get("recherche") or {}).get("fruehere_faelle", [])]
+        pages.append({"kind": "context",
+                      "headline_html": _headline("Was frühere Fälle zeigen"),
+                      "context": vergleich[:3],
+                      "foot_source": ("Auswertung: " + ", ".join(dict.fromkeys(stellen))
+                                      if stellen else fundstelle)})
 
     # Slide 4: eines der vier Muster, nie freier Fliesstext. Profil-Karussells
     # haben bewusst keine - "was heisst das fuer dich" laesst sich dort nicht

@@ -19,6 +19,7 @@ import requests
 
 import abstimmung
 import config
+import stimmen
 
 SEEN_PATH = Path("data/seen.json")
 UA = {
@@ -114,12 +115,14 @@ def ensure_volltext(item: dict) -> dict:
     kurzer korrekter Text ist besser als gar keiner.
     """
     text = item.get("text", "")
-    if len(text) >= config.VOLLTEXT_ZIEL_CHARS:
-        return item
     # Der Textarchiv-Artikel IST der Volltext. Ein kurzer Beschluss ohne
     # Aussprache hat nur 700 Zeichen - das allgemeine Nachladen unten holte
-    # dann die ganze Seite samt Navigation und Rednerliste.
+    # dann die ganze Seite samt Navigation und Rednerliste. Vor der
+    # Laengenpruefung: die Stimmen braucht auch ein langer Artikel.
     if item.get("textarchiv_id"):
+        _textarchiv_stimmen(item)
+        return item
+    if len(text) >= config.VOLLTEXT_ZIEL_CHARS:
         return item
 
     # DIP-Vorgaenge haben keinen abrufbaren Artikel: dip.bundestag.de baut die
@@ -181,7 +184,11 @@ def fetch_destatis() -> list:
             "source": "Statistisches Bundesamt",
             "weight": 3,
             "tier": "kern",
-            "title": _clean(entry.get("title", "")),
+            # "KORREKTUR: 1,3 Millionen Wohngeldhaushalte" - der Hinweis gilt
+            # der Presse, die die erste Fassung schon hatte. Auf einer Karte
+            # liest er sich wie unsere eigene Richtigstellung.
+            "title": re.sub(r"^(?:KORREKTUR|Korrektur|BERICHTIGUNG|Berichtigung)"
+                            r"\s*:\s*", "", _clean(entry.get("title", ""))),
             "text": _clean(entry.get("summary", "")),
             "url": link,
             "date": when.strftime("%Y-%m-%d"),
@@ -459,6 +466,25 @@ def dip_abstimmung(item: dict, positionen: dict) -> dict | None:
     return None
 
 
+def _textarchiv_stimmen(item: dict) -> None:
+    """Wer wie gestimmt hat, fuer ein ausgewaehltes Textarchiv-Thema.
+
+    Hier und nicht beim Einsammeln: nur die gewaehlten Themen brauchen es,
+    und die namentliche Abstimmung kostet einen XLSX-Abruf je Kandidat.
+    Die Saetze gehen an den Quelltext wie bei DIP - nur bei namentlicher
+    Abstimmung, denn nur dort gibt es Zahlen, die belegt werden muessen.
+    """
+    if item.get("abstimmung"):
+        return
+    ergebnis = stimmen.fuer_textarchiv(item)
+    if not ergebnis:
+        return
+    item["abstimmung"] = ergebnis
+    if ergebnis.get("art") == "namentlich":
+        item["text"] = (item["text"][:config.FULLTEXT_MAX_CHARS - 1200]
+                        + " " + abstimmung_als_text(ergebnis))
+
+
 def abstimmung_als_text(treffer: dict) -> str:
     """Das Abstimmungsergebnis als Saetze fuer den Quelltext.
 
@@ -468,9 +494,11 @@ def abstimmung_als_text(treffer: dict) -> str:
     daran beteiligt - dieselbe Bauart wie im Profil-Modus.
     """
     ergebnis = "angenommen" if treffer["angenommen"] else "abgelehnt"
+    herkunft = (f"Plenarprotokoll {treffer['protokoll']}" if treffer.get("protokoll")
+                else treffer.get("quelle") or "Abstimmungsliste des Bundestages")
     teile = [
         f"Namentliche Abstimmung am {treffer.get('datum', '')} "
-        f"(Plenarprotokoll {treffer.get('protokoll', '')}): "
+        f"({herkunft}): "
         f"{treffer['gesamt']} abgegebene Stimmen, davon {treffer['ja']} Ja, "
         f"{treffer['nein']} Nein und {treffer['enthalten']} Enthaltungen. "
         f"Die Vorlage wurde damit {ergebnis}."

@@ -142,6 +142,12 @@ Aufbau:
      falsch, auch wenn jedes einzelne Wort belegt ist.
    - Keine Masche: kein Fragezeichen, kein "Das aendert alles", keine
      Wertung, keine Uebertreibung.
+0b. schluesselwort: das EINE Hauptwort des Karussells, genau so geschrieben,
+   wie es in "titel" steht - der Name, unter dem Leute die Sache kennen
+   ("Tankrabatt", "Buergergeld", "E-Scooter-Haftung"). Es wird in der
+   Schlagzeile farbig hervorgehoben und ist der Begriff, den Slide 3
+   erklaert. Es MUSS woertlich in "titel" vorkommen. Nicht das Wort mit der
+   Zahl, nicht das letzte Wort, sondern das, worum es geht.
 1. hook: die Teaserzeile unter der Cover-Schlagzeile, max 70 Zeichen. Sie
    gibt der Zeile darueber Futter - sie macht kein zweites Fass auf.
    Die Zeile darueber sagt WAS. Deine Zeile sagt, WEN es angeht und WANN
@@ -227,9 +233,15 @@ Aufbau:
    und Recherche - rechne dann selbst nichts um.
 3. context: 3 bis 4 kurze Absaetze, je max 200 Zeichen: Was ist das ueberhaupt,
    was galt vorher, was gilt jetzt, wer hat wie entschieden.
-4. begriff: der EINE Fachbegriff, an dem die ganze Meldung haengt, erklaert
-   fuer einen klugen Fuenfzehnjaehrigen. "titel" ist die Headline der Slide
-   und endet auf dem Begriff selbst ("Was ist ein Freibetrag"). "saetze" sind
+4. begriff: das "schluesselwort", erklaert fuer einen klugen
+   Fuenfzehnjaehrigen. "titel" ist die Headline der Slide und endet auf
+   genau diesem Wort ("Was ist ein Freibetrag", "Was ist der Tankrabatt").
+   Hat die Sache einen eigenen Namen, erklaerst du DIESEN Namen - und zwar
+   ueber den Mechanismus dahinter: "Der Tankrabatt ist eine befristete
+   Senkung der Energiesteuer auf Benzin und Diesel." Erklaere NICHT
+   stattdessen den Fachbegriff darunter (Energiesteuer statt Tankrabatt):
+   die Leserin hat auf dem Cover "Tankrabatt" gelesen und will wissen, was
+   DAS ist. "saetze" sind
    GENAU 2 kurze Saetze ohne Fachsprache und ohne Schachtelsatz, je max 130
    Zeichen. "beispiel" ist ein gerechneter Fall mit konkreten Zahlen ("Bei
    1.500 Euro Zinsen zahlst du 0 Euro Steuern"), max 130 Zeichen. "warum"
@@ -282,12 +294,27 @@ Aufbau:
      gehoert in "hinweis".
    - "4b" wenn die Anspruchsberechtigung die Geschichte ist: "ja" und "nein"
      als je 2 bis 3 kurze Bedingungen.
+   Die Slide steht unter der festen Ueberschrift "Was heisst das fuer dich?".
+   Sie beantwortet, WIE die Leserin betroffen ist - nicht, was sie tun muss.
+   Aendert sich fuer sie etwas (sie zahlt weniger, bekommt mehr, haftet
+   anders), dann steht GENAU DAS im Mittelpunkt. Wer tankt und ab Oktober
+   weniger zahlt, ist betroffen, auch wenn er dafuer nichts tun muss.
+   Bei Geld, das sich fuer die Leserin aendert, sind "4a" (bisher/neu) oder
+   "4d" (zwei Beispielfaelle, etwa Pendlerin und Wenigfahrer, mit
+   deklarierten Beispielwerten) die richtige Wahl, nicht "4c".
    - "4c" wenn die Aenderung automatisch greift oder Schritte noetig sind:
-     "payoff" ist die grosse Antwort in ein bis zwei Woertern ("Nichts."),
-     "erklaerung" ein Satz dazu, "schritte" die Faelle, in denen man doch
-     selbst taetig werden muss (darf leer sein).
-     Der payoff lautet meistens "Nichts." - das ist die ehrliche Antwort und
-     bleibt der Normalfall. NUR wenn der "Bereich" unten "oeffentlich" ist,
+     "payoff" ist die grosse Antwort in ein bis drei Woertern, "erklaerung"
+     ein Satz dazu, "schritte" die Faelle, in denen man doch selbst taetig
+     werden muss (darf leer sein).
+     Der payoff beantwortet die Ueberschrift "Was heisst das fuer dich?".
+     Betrifft es die Leserin, nennt er die Wirkung ("Du zahlst weniger.",
+     "Mehr Geld."), und dass sie nichts tun muss, steht in "erklaerung"
+     ("Der Rabatt gilt automatisch an jeder Tankstelle"). "Nichts." ist NUR
+     richtig, wenn sich fuer eine normale Person tatsaechlich nichts
+     aendert - unter dieser Ueberschrift heisst "Nichts." "betrifft dich
+     nicht", und das ist bei einem Beschluss, der Preise, Leistungen oder
+     Pflichten fuer viele aendert, schlicht falsch.
+     NUR wenn der "Bereich" unten "oeffentlich" ist,
      darfst du ihn stattdessen augenzwinkernd formulieren und EIN Emoji
      voranstellen: bei der Sportfoerderung etwa die deutsche Flagge und
      "Anfeuern.", darunter der Satz, dass sich am Geld nichts aendert.
@@ -311,6 +338,14 @@ Aufbau:
      "Produkt 1" ist kein Label: ohne die Sache steht die Zahl ohne Bezug.
    Liefere nur die Felder des gewaehlten Musters. Jede Zahl darin unterliegt
    derselben Belegpflicht wie der Rest.
+7. vergleich: NUR wenn unten unter "Fruehere Faelle" Eintraege stehen, sonst
+   lass das Feld ganz weg. Eine eigene Slide "Was fruehere Faelle zeigen":
+   "punkte" sind 2 bis 3 Saetze, je max 150 Zeichen, jeder mit der Zahl und
+   der Stelle aus einem Eintrag dort ("Beim Tankrabatt 2022 kamen laut ifo
+   Institut rund 85 Prozent an der Zapfsaeule an"). Nur was dort steht -
+   keine eigene Einordnung, keine Prognose fuer diesmal, kein "wird wohl
+   wieder". Stehen dort keine Eintraege, gibt es diese Slide nicht, auch
+   wenn du selbst etwas darueber weisst.
 
 Schreibweise:
 - Keine Gedankenstriche. Trenne mit Doppelpunkt, Komma oder Punkt.
@@ -395,6 +430,7 @@ Belegpflicht - nur fuer harte Fakten aus dem QUELLTEXT:
 Antworte NUR mit JSON:
 {{"skip": false,
   "titel": "Kalte Progression: Diese Regel aus 1955 soll geaendert werden",
+  "schluesselwort": "Kalte Progression",
   "hook": "...",
   "cover_frage": "Was ist eine Pendlerpauschale?",
   "chart": {{"titel": "...", "einheit": "Euro|Prozent|...",
@@ -413,6 +449,7 @@ Antworte NUR mit JSON:
              "kopf_neu": "ab 2027",
              "zeilen": [{{"label": "Je Kilometer", "bisher": "30 Cent", "neu": "45 Cent"}}],
              "pills": [{{"label": "Gilt ab", "wert": "01.01.27"}}]}},
+  "vergleich": {{"punkte": ["...", "..."]}},
   "beispielwerte": [100, 104.60],
   "abgeleitete_zahlen": [{{"wert": 70, "aus": [1955, 2026], "rechnung": "differenz"}}],
   "fakten_evidence": "..."}}
@@ -436,6 +473,7 @@ Recherche-Zahlen: {zahlen}
 Kaufkraft: {kaufkraft}
 Betroffene: {betroffene}
 Alltagswirkung: {alltagswirkung}
+Fruehere Faelle: {fruehere}
 {sonderregel}"""
 
 JUDGE_PROMPT = """Du bist Faktenpruefer. Du pruefst NICHT den Stil, nur die
@@ -478,6 +516,9 @@ E) Zahlen, die das Modell als eigenes Rechenbeispiel deklariert hat:
 
 F) Cover-Frage (steht gross auf Slide 1, wenn diese Architektur gezogen wird):
 {cover_frage}
+
+H) Slide "Was fruehere Faelle zeigen" (nur wenn vorhanden):
+{vergleich}
 
 G) Zahlen, die aus belegten Zahlen ausgerechnet wurden:
 {abgeleitete}
@@ -551,6 +592,15 @@ Pruefe:
   niemand. Lies die Zeile dabei so, wie sie dasteht: Wer "und Co."
   ueberliest und anschliessend bemaengelt, die zwei Namen seien nicht
   repraesentativ, beanstandet eine Zeile, die so nicht geschrieben wurde.
+- Folgen-Slide, Muster 4c: Die Slide steht unter "Was heisst das fuer
+  dich?". Lautet der payoff "Nichts." (oder sinngemaess), obwohl sich laut
+  den Slides fuer normale Leute etwas aendert - Preise, Leistungen,
+  Pflichten -, ist das ein Durchfaller: die Zeile behauptet dann, es
+  betreffe die Leserin nicht.
+- Fruehere Faelle (H): Stammt jede Aussage aus einem "Frueheren Fall" der
+  Recherche, mit derselben Zahl und derselben Stelle? Ist es wirklich
+  dieselbe Art Massnahme? Eine eigene Prognose fuer diesmal oder eine
+  Verallgemeinerung ueber den Befund hinaus ist ein Durchfaller.
 - Cover-Frage: Beantworten die Slides sie wirklich? Die Frage steht auf der
   ersten Slide und verspricht damit eine Antwort. Verspricht sie mehr, als
   Begriffserklaerung und Folgen-Slide einloesen, oder setzt sie eine Tatsache
@@ -570,10 +620,15 @@ def _json_from(text: str):
     Das Modell haengt trotz Anweisung gelegentlich noch Prosa an oder packt
     das JSON in einen Codeblock. Deshalb erst der direkte Versuch, dann das
     erste vollstaendig geklammerte Objekt aus dem Text.
+
+    strict=False: ein Zeilenumbruch MITTEN in einem String ist kein gueltiges
+    JSON, kommt aber vor - am 26.09.2026 ging so die komplette Tankrabatt-
+    Recherche verloren ("Invalid control character"), und der Entwurf griff
+    ohne Vergleichszahlen zu eigenen. Der Inhalt ist davon nicht betroffen.
     """
     text = re.sub(r"^```(?:json)?|```$", "", text.strip(), flags=re.MULTILINE).strip()
     try:
-        return json.loads(text)
+        return json.loads(text, strict=False)
     except json.JSONDecodeError:
         pass
 
@@ -597,7 +652,7 @@ def _json_from(text: str):
         elif zeichen == "}":
             tiefe -= 1
             if tiefe == 0:
-                return json.loads(text[start:i + 1])
+                return json.loads(text[start:i + 1], strict=False)
     raise ValueError("unvollstaendiges JSON in der Antwort")
 
 
@@ -1248,6 +1303,49 @@ Alles andere an deinem Entwurf war in Ordnung; aendere nur, was noetig ist.
 """
 
 
+def _fruehere_text(recherche: dict) -> str:
+    """Die geprueften Befunde frueherer Massnahmen fuer den Entwurfsprompt."""
+    faelle = recherche.get("fruehere_faelle") or []
+    if not faelle:
+        return "keine"
+    return " | ".join(f"{f['massnahme']}: {f['befund']} ({f['wert']:g} "
+                      f"{f['einheit']}, laut {f['stelle']})" for f in faelle)
+
+
+def formfehler(slides: dict, recherche: dict) -> str:
+    """Was am Aufbau nicht stimmt, als Beanstandung - leer, wenn alles passt.
+
+    Keine Faktenfrage, sondern die Regeln, die sich ohne Modell pruefen
+    lassen: das Hauptwort steht in der Schlagzeile, und Slide 3 erklaert
+    genau dieses Wort (Tankrabatt 26.09.2026: Cover "Tankrabatt", Slide 3
+    "Was ist die Energiesteuer").
+
+    Nebenbei, und ohne Beanstandung: eine Vergleichs-Slide ohne gepruefte
+    Befunde der Recherche wird gestrichen. Ob es sie gibt, entscheidet der
+    Code (research.fruehere_faelle), nicht das Modell.
+    """
+    if slides.get("vergleich") and not (recherche or {}).get("fruehere_faelle"):
+        print("  - Vergleichs-Slide gestrichen: keine gepruefte Fundstelle")
+        slides.pop("vergleich", None)
+
+    wort = str(slides.get("schluesselwort") or "").strip()
+    if not wort:
+        return ""
+    muster = re.compile(rf"(?<!\w){re.escape(wort)}(?!\w)", re.IGNORECASE)
+    fehler = []
+    if not muster.search(slides.get("titel") or ""):
+        fehler.append(f'Das schluesselwort "{wort}" steht nicht woertlich im '
+                      f'titel. Nimm ein Wort, das dort steht, oder schreib '
+                      f'den titel so, dass es darin vorkommt.')
+    begriff = (slides.get("begriff") or {}).get("titel") or ""
+    if begriff and not muster.search(begriff):
+        fehler.append(f'Slide 3 erklaert "{begriff}", die Schlagzeile '
+                      f'handelt aber von "{wort}". Erklaere "{wort}" selbst '
+                      f'- ueber den Mechanismus dahinter, nicht an seiner '
+                      f'Stelle einen anderen Begriff.')
+    return " ".join(fehler)
+
+
 def _zahlen_einwand(zahlen: list) -> str:
     """Beanstandung fuer unbelegte Zahlen - mit dem erlaubten Ausweg.
 
@@ -1304,6 +1402,7 @@ def compose(item: dict, recherche: dict, einwand: str = "") -> dict | None:
                 bereich=item.get("bereich") or "unbekannt",
                 betroffene=recherche.get("betroffene", "") or "unbekannt",
                 alltagswirkung=recherche.get("alltagswirkung", "") or "unbekannt",
+                fruehere=_fruehere_text(recherche),
                 sonderregel=STATISTIK_REGEL if item.get("art") == "statistik" else "",
                 min_bars=config.CHART_MIN_BARS, max_bars=config.CHART_MAX_BARS)}],
         ) as stream:
@@ -1370,6 +1469,7 @@ def _sichtbarer_text(slides: dict) -> str:
         (slides.get("sowhat") or {}).get("text", ""),
         " ".join((slides.get("sowhat") or {}).get("schritte", []) or []),
         " ".join(_texte(slides.get("folgen"))),
+        " ".join(_texte(slides.get("vergleich"))),
         ((slides.get("chart") or {}).get("hinweis", "")),
     ])
 
@@ -1440,6 +1540,16 @@ def recherche_zahlen(recherche: dict) -> set:
     kaufkraft = recherche.get("kaufkraft") or {}
     if kaufkraft.get("heute_etwa"):
         zahlen |= _schreibweisen(kaufkraft["heute_etwa"])
+    # Befunde frueherer Massnahmen: research.fruehere_faelle laesst nur
+    # Eintraege mit Zahl, Stelle und Adresse durch - dieselbe Bedingung wie
+    # bei den Vergleichswerten oben.
+    # Der Befundsatz selbst nennt oft mehr als die eine Zahl in "wert"
+    # ("Diesel zu 82,6 Prozent und Super E5 zu 77,8 Prozent", Bundeskartellamt
+    # zum Tankrabatt Mai/Juni 2026) - er steht unter derselben Fundstelle.
+    for fall in recherche.get("fruehere_faelle", []) or []:
+        zahlen |= _schreibweisen(fall["wert"])
+        for zahl in re.findall(r"\d+(?:,\d+)?", fall.get("befund", "")):
+            zahlen |= _schreibweisen(zahl)
     return zahlen
 
 
@@ -1672,6 +1782,20 @@ def abgeleitete_eintraege(slides: dict, item: dict, recherche: dict) -> list:
             if isinstance(e, dict) and _schreibweisen(_zahl_aus(e.get("wert"))) & frei]
 
 
+# Tausendertrenner als Leerzeichen: Destatis schreibt "682 000" und
+# "4 689 Millionen Euro" (auch mit geschuetztem oder schmalem Leerzeichen).
+# Die Karte schreibt korrekt "682.000" - und galt damit als unbelegt
+# (Wohngeld, 26.09.2026). Nur ganze Zahlen in Dreiergruppen: vorn 1 bis 3
+# Ziffern, dann je Leerzeichen genau drei. "Ende 2025 682 000" bleibt so
+# "Ende 2025 682.000" - die Jahreszahl hat vier Ziffern und gehoert nicht dazu.
+_TAUSENDER = re.compile(r"(?<![\d.,])\d{1,3}(?:[ \u00a0\u202f]\d{3})+(?![\d,])")
+
+
+def tausender_mit_punkt(text: str) -> str:
+    return _TAUSENDER.sub(lambda m: re.sub(r"[ \u00a0\u202f]", ".", m.group()),
+                          text or "")
+
+
 def zahl_belegt(varianten: set, quelltext: str, belegt: set) -> bool:
     """Steht eine dieser Schreibweisen im Quelltext oder in der Recherche?
 
@@ -1680,6 +1804,7 @@ def zahl_belegt(varianten: set, quelltext: str, belegt: set) -> bool:
     "NIRGENDS" gemeldet, obwohl verify_slides sie zu Recht durchliess - ein
     Pruefbericht, der Fehlalarm gibt, ist schlimmer als keiner.
     """
+    quelltext = tausender_mit_punkt(quelltext)
     if any(v in quelltext for v in varianten):
         return True
     if varianten & belegt:
@@ -1907,6 +2032,10 @@ def _recherche_belege(recherche: dict) -> str:
     for b in recherche.get("vorher_nachher", []) or []:
         zeilen.append(f"Vergleichswert {b['label']}: {b['wert']} {b['einheit']} "
                       f"(Fundstelle: {b.get('quelle_url', 'ohne')})")
+    for f in recherche.get("fruehere_faelle", []) or []:
+        zeilen.append(f"Frueherer Fall {f['massnahme']}: {f['befund']} "
+                      f"({f['wert']:g} {f['einheit']}, ausgewertet von "
+                      f"{f['stelle']}; Fundstelle: {f['quelle_url']})")
     kk = recherche.get("kaufkraft") or {}
     if kk:
         zeilen.append(
@@ -1966,6 +2095,8 @@ def judge_slides(slides: dict, item: dict,
                 abgeleitete=json.dumps(
                     abgeleitete_eintraege(slides, item, recherche) or "keine",
                     ensure_ascii=False),
+                vergleich=json.dumps(slides.get("vergleich") or "keine",
+                                     ensure_ascii=False),
                 cover_frage=slides.get("cover_frage") or "keine")}],
         )
         data = _json_from(_text_block(resp))
@@ -2045,6 +2176,15 @@ def build_carousels(items: list, recherche_fn, anzahl: int | None = None,
                 continue
             if fehler:
                 return nummer, None
+            form = formfehler(slides, recherche)
+            if form and versuch == 1:
+                einwand = form
+                print(f"  ~ zweiter Versuch (Aufbau): {item['title'][:48]}")
+                continue
+            if form:
+                # Im zweiten Anlauf kein Ausschluss: die Slides stimmen, nur
+                # der Aufbau ist schwaecher. Sichtbar bleibt es trotzdem.
+                print(f"  ! Aufbau weiter schwach: {form[:100]}")
             bestanden, einwand = judge_slides(slides, item, recherche)
             if bestanden:
                 if versuch == 2:

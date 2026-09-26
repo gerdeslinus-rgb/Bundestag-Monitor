@@ -50,6 +50,20 @@ Was gebraucht wird:
 4. Nennt der Quelltext einen Geldbetrag, der seit vielen Jahren unveraendert
    gilt (etwa "102 Euro seit 1955")? Dann trag Betrag und Jahr ein. Das
    kostet keine Suche - beides steht im Quelltext.
+5. Gab es GENAU DIESE Massnahme oder eine unmittelbar vergleichbare in
+   Deutschland schon einmal - und hat jemand ausgewertet, was sie bewirkt
+   hat? Beispiel: fuer einen neuen Tankrabatt der Tankrabatt von 2022 und
+   die Frage, wie viel der Steuersenkung an der Zapfsaeule ankam.
+   Sei STRENG. Ein Eintrag braucht alle vier Dinge, sonst lass die Liste
+   leer:
+   - dieselbe Art Massnahme (Tankrabatt zu Tankrabatt - nicht "irgendeine
+     Entlastung" und nicht dasselbe Thema in einem anderen Land),
+   - einen konkreten Befund MIT Zahl ("rund 85 Prozent weitergegeben"),
+   - eine benannte Stelle, die ausgewertet hat (Institut, Behoerde,
+     Bundeskartellamt, Monopolkommission, Studie),
+   - die Adresse, unter der der Befund steht.
+   Meinungen, Forderungen und Prognosen sind KEIN Befund. Eine leere Liste
+   ist der Normalfall und ein gutes Ergebnis.
 
 Antworte NUR mit JSON, kein Text davor oder danach:
 {{"erklaerung": "2-4 Saetze, was der Fachbegriff bedeutet",
@@ -57,7 +71,12 @@ Antworte NUR mit JSON, kein Text davor oder danach:
                        "quelle_url": "https://..."}}],
   "kaufkraft": {{"betrag": 102, "jahr": 1955, "einheit": "Euro"}},
   "betroffene": "Wen es betrifft, in einem Satz",
-  "alltagswirkung": "Wie es sich konkret auswirkt, 1-2 Saetze"}}
+  "alltagswirkung": "Wie es sich konkret auswirkt, 1-2 Saetze",
+  "fruehere_faelle": [{{"massnahme": "Tankrabatt Juni bis August 2022",
+                        "befund": "ein Satz, was die Auswertung ergab",
+                        "wert": 85, "einheit": "Prozent",
+                        "stelle": "wer ausgewertet hat",
+                        "quelle_url": "https://..."}}]}}
 
 Regeln:
 - "vorher_nachher" sind die Zahlen fuers Diagramm, {min_bars} bis {max_bars} Stueck,
@@ -135,7 +154,8 @@ def enrich(item: dict) -> dict:
     """Recherchiert Hintergrund zu einem Thema. Fehler sind nicht toedlich -
     dann gibt es eben ein Karussell ohne Zusatzkontext."""
     leer = {"erklaerung": "", "vorher_nachher": [], "kaufkraft": {},
-            "betroffene": "", "alltagswirkung": "", "fundstellen": []}
+            "betroffene": "", "alltagswirkung": "", "fruehere_faelle": [],
+            "fundstellen": []}
     if not config.RESEARCH_ENABLED:
         return leer
 
@@ -219,8 +239,41 @@ def enrich(item: dict) -> dict:
         "kaufkraft": _kaufkraft(data.get("kaufkraft"), item.get("text", "")),
         "betroffene": str(data.get("betroffene", "")),
         "alltagswirkung": str(data.get("alltagswirkung", "")),
+        "fruehere_faelle": fruehere_faelle(data.get("fruehere_faelle")),
         "fundstellen": fundstellen,
     }
+
+
+# Mehr als drei sind keine Einordnung mehr, sondern eine eigene Geschichte.
+FRUEHERE_MAX = 3
+
+
+def fruehere_faelle(roh) -> list:
+    """Befunde zu frueheren, gleichartigen Massnahmen - streng gefiltert.
+
+    Die Slide "Was fruehere Faelle zeigen" gibt es nur, wenn hier etwas
+    uebrig bleibt, und das entscheidet der Code, nicht das Modell: jeder
+    Eintrag braucht Massnahme, Befund, eine Zahl, eine benannte Stelle und
+    eine echte Adresse. Ein Befund ohne Zahl ist eine Meinung, einer ohne
+    Adresse laesst sich vor der Freigabe nicht nachpruefen - beides faellt
+    weg (Entscheidung 26.09.2026: "nur, wenn es passt, und streng").
+    """
+    faelle = []
+    for f in roh or []:
+        if not isinstance(f, dict):
+            continue
+        try:
+            wert = float(str(f.get("wert")).replace(",", "."))
+        except (TypeError, ValueError):
+            continue
+        url = str(f.get("quelle_url", ""))
+        teile = [str(f.get(k, "")).strip() for k in ("massnahme", "befund", "stelle")]
+        if not url.startswith("http") or not all(teile):
+            continue
+        faelle.append({"massnahme": teile[0][:80], "befund": teile[1][:220],
+                       "wert": wert, "einheit": str(f.get("einheit", ""))[:40],
+                       "stelle": teile[2][:80], "quelle_url": url})
+    return faelle[:FRUEHERE_MAX]
 
 
 def _kaufkraft(roh, quelltext: str) -> dict:

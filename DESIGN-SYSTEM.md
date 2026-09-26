@@ -181,7 +181,7 @@ Slide 4 answers "was heißt das für dich". There is **no default layout: choose
 |---|---|---|
 | **4a Vorher / Nachher** | the change is quantitative | One card, grid `1fr auto auto`, column heads `bisher` (24px muted) / `ab <Jahr>` (24px bold). Row label 32/700 left, old value 32px muted, new value 80px display, both right-aligned, `align-items: baseline`. Anything that is *not* a before/after (a deadline, an action) leaves the table and becomes its own pill row below. |
 | **4b Gilt für dich / gilt nicht** | eligibility is the story | Filled navy `Ja, wenn` card over an outlined `Nein, wenn` card, each a bullet list: 30px stroke icon (check / cross, `stroke-width: 2.4`, `margin-top: 7px`) + text in a `flex` row, `gap: 20px`, `align-items: flex-start`. |
-| **4c Checkliste** | the change is automatic, or needs steps | Big payoff card first — `Nichts.` in display size plus one line of explanation — then `Nur in diesen Fällen musst du selbst ran` as arrow rows. The strongest pattern when the honest answer is "you don't have to do anything". |
+| **4c Checkliste** | the change is automatic, or needs steps | Big payoff card first — the effect on the reader in display size (`Du zahlst weniger.`) plus one line of explanation (`Gilt automatisch, du musst nichts tun.`) — then `Nur in diesen Fällen musst du selbst ran` as arrow rows. The slide sits under "Was heißt das für dich?", so the payoff answers *how you are affected*, not *what you must do*: `Nichts.` only when a normal person really isn't affected (changed 26.09.2026 — "Nichts." on the Tankrabatt read as "doesn't concern you"). When money changes for the reader, 4a or 4d usually fit better. |
 | **4d Zwei Fälle** | an abstract rule needs a concrete case | Two labelled cards side by side (one white, one navy), same metrics in the same order under each: pictogram, case label 32/700, then `24px label / 80px figure` pairs. |
 
 ### Alignment rules that make these hold up
@@ -193,8 +193,8 @@ Slide 4 answers "was heißt das für dich". There is **no default layout: choose
 
 ## 9. Images
 
-- Photography only — real photos, black-and-white or desaturated news imagery.
-- **Exception, portraits of politicians** (added 25.09.2026): in color, the person cut out (background removed), showing head and upper body, not just the face. Fixed, hand-picked file per person from Wikimedia Commons; photographer and license go into the caption.
+- Photography only — real photos in color (changed 26.09.2026; before: black-and-white). A slight contrast lift (`contrast(1.06)`) is the only treatment.
+- **Portraits of politicians** (added 25.09.2026): in color, the person cut out (background removed), showing head and upper body, not just the face. Fixed, hand-picked file per person from Wikimedia Commons; photographer and license go into the caption.
 - Cover: sized by the chosen variant (§6.3) — 430px column, 660px block, or full bleed. Later slides: `border-radius: 20–22px` frames, 270–290px tall, full column width.
 - **Party logos replace party names in headlines** (added 25.09.2026): in every h1 (cover and content slides) a party name becomes its logo, article included ("Großspende an die Grünen" → "Großspende an [logo]"). If the party ends the headline, the highlight/accent moves to the word before it, skipping a short word like "an". In running text the name stays spelled out. In charts (bars, seat-arc legend) a party always carries its logo. Logic in `render._mit_parteilogos`.
 - **Logos with their own surface** (Grüne: sunflower on dark green) are marked `"kachel": false` in `data/logos/logos.json` and appear without the white tile — the tile left a white rim around them. In headlines a party logo is 1.3em high on the baseline, so it reads as a word next to 96px capitals.

@@ -197,9 +197,11 @@
   }
 
   .cover-foto { overflow: hidden; flex: none; }
+  /* In Farbe (Entscheidung 26.09.2026) - vorher Graustufen. Der leichte
+     Kontrast bleibt: Agenturfotos wirken neben der Slab-Schrift sonst flau. */
   .cover-foto img {
     display: block; width: 100%; height: 100%; object-fit: cover;
-    filter: grayscale(1) contrast(1.06);
+    filter: contrast(1.06);
   }
 
   /* 1a Zahl zuerst: die Summe IST die Meldung. Figur und Schlagzeile stehen
@@ -281,8 +283,8 @@
   /* 1g Portraet (Variante B, abgestimmt 25.09.2026): rechts ein Farbfeld
      ueber die volle Hoehe, die freigestellte Person steht auf seiner Kante
      und laeuft unten aus dem Bild. Der Text bleibt links in einer festen
-     Spalte - die Person darf nie in die Schlagzeile ragen. In Farbe: das
-     Graustufen-Filter der Fotovarianten gilt hier ausdruecklich nicht. */
+     Spalte - die Person darf nie in die Schlagzeile ragen. In Farbe, wie
+     seit 26.09.2026 auch die Fotovarianten. */
   section.cover.cover-1g { position: relative; display: block; overflow: hidden; }
   .cover-1g .feld {
     position: absolute; right: 0; top: 0; bottom: 0; width: 420px;
@@ -469,6 +471,9 @@
     line-height: 1; letter-spacing: -0.025em;
   }
   .bogen-mitte .basis { font-size: var(--small); opacity: 0.75; }
+  /* Handzeichen: ein Wort statt einer Zahl - in Display-Groesse liefe
+     "Angenommen" ueber die Innenflaeche des Bogens hinaus. */
+  .bogen-mitte .zahl.wort { font-size: 64px; letter-spacing: -0.01em; }
   .legende {
     display: grid; grid-template-columns: 1fr 1fr;
     column-gap: 40px; row-gap: 16px; font-size: var(--small);
@@ -750,20 +755,30 @@
               {% endif %}
             {% endfor %}
           </svg>
-          {# Die noetige Mehrheit steht hier - genau einmal auf der Slide. #}
+          {# Die noetige Mehrheit steht hier - genau einmal auf der Slide.
+             Bei Handzeichen gibt es keine Zahlen, nur das Ergebnis. #}
           <div class="bogen-mitte">
-            <div class="zahl">{{ bogen.ja }}</div>
-            <div class="basis">von {{ bogen.benoetigt }} benötigten</div>
+            {% if bogen.art == 'handzeichen' %}
+              <div class="zahl wort">{{ 'Angenommen' if bogen.angenommen else 'Abgelehnt' }}</div>
+              <div class="basis">per Handzeichen</div>
+            {% else %}
+              <div class="zahl">{{ bogen.ja }}</div>
+              <div class="basis">von {{ bogen.benoetigt }} benötigten</div>
+            {% endif %}
           </div>
         </div>
         <div class="legende">
-          {% for f in bogen.legende %}
-            <div><span class="swatch" style="background: {{ f.farbe }}"></span>
+          {% for f in bogen.legende if bogen.art != 'handzeichen' or f.position %}
+            <div><span class="swatch{% if bogen.art == 'handzeichen' and f.position != 'dafür' %} hohl{% endif %}" style="{% if bogen.art == 'handzeichen' and f.position != 'dafür' %}color: {{ f.farbe }}{% else %}background: {{ f.farbe }}{% endif %}"></span>
               {% for l in f.logos if l %}<img class="logo klein" src="{{ l }}" alt="">{% endfor %}
-              <span>{{ f.name }}: {{ f.ja }} Ja von {{ f.sitze }}</span></div>
+              {% if bogen.art == 'handzeichen' %}
+                <span>{{ f.name }}: {{ f.position }}</span></div>
+              {% else %}
+                <span>{{ f.name }}: {{ f.ja }} Ja von {{ f.sitze }}</span></div>
+              {% endif %}
           {% endfor %}
           <div><span class="swatch hohl"></span>
-            <span>hohler Punkt: dagegen oder enthalten</span></div>
+            <span>{% if bogen.art == 'handzeichen' %}Position der Fraktion, keine Einzelstimmen{% else %}hohler Punkt: dagegen oder enthalten{% endif %}</span></div>
         </div>
       {% else %}
         <div class="bars{% if chart.divergent %} divergent{% endif %}">

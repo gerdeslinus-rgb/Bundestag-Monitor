@@ -136,7 +136,19 @@ Bemerkung` - eine Zeile pro MdB (630), die Stimmspalten sind 0/1.
 Fraktionskuerzel: `CDU/CSU, SPD, AfD, BUe90/GR, Die Linke, Fraktionslos`.
 Namen enthalten Zeichen ausserhalb Latin-1 (z. B. "ć") - Ausgabe immer UTF-8,
 sonst bricht ein `print` unter Windows ab. Lesen braucht `openpyxl`
-(noch nicht in `requirements.txt`).
+(seit 26.09.2026 in `requirements.txt`).
+
+**Genutzt seit 26.09.2026** (`stimmen.py`): Sitzbogen fuer Textarchiv-
+Karussells am Sitzungstag. Zuordnung Artikel -> XLSX: gleiches Datum, und
+Ja- und Nein-Zahl der XLSX stehen woertlich im Artikel; bei mehreren
+Treffern (Tankrabatt 434:128 und Entschliessungsantrag 127:418 im selben
+Artikel) entscheidet die Titelnaehe. Ohne namentliche Abstimmung liest
+`stimmen.handzeichen()` die Fraktionspositionen aus dem Redaktionssatz
+("Dafuer stimmten ..., dagegen ... enthielt sich") - nur wenn JEDE Fraktion
+zugeordnet ist, sonst gibt es keinen Bogen. Stand 24./25.09.2026: 3 von 9
+Beschluessen namentlich, 5 per Handzeichen lesbar, 1 ohne Bogen ("mit den
+Stimmen aller uebrigen Fraktionen abgelehnt" - die AfD-Position zum eigenen
+Entwurf steht dort nicht).
 
 **Menge:** 51 namentliche Abstimmungen in der 21. WP bis 24.09.2026, an 27
 Tagen - im Schnitt drei pro Monat, gebuendelt (10.07.2026: acht an einem Tag).

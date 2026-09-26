@@ -163,6 +163,10 @@ GESETZE_LOOKBACK_DAYS = 21
 # was passiert ist. Im Zweifel zeigt das Karussell einfach keine Stimmen.
 ABSTIMMUNG_ENABLED = True
 ABSTIMMUNG_MIN_UEBERLAPPUNG = 0.6
+# Namentliche Abstimmungen mit XLSX je Abstimmung, am selben Tag online
+# (QUELLEN.md Abschnitt 3, gelesen von stimmen.py).
+ABSTIMMUNGSLISTE = ("https://www.bundestag.de/ajax/filterlist/de/parlament/"
+                    "plenum/abstimmung/liste/462112-462112")
 
 # Welche Drucksache eines Vorgangs den Quelltext liefert - in dieser
 # Reihenfolge. Nicht einfach "die neueste": ein Vorgang enthaelt auch
@@ -408,6 +412,8 @@ FRAKTION_ALIAS = {
     "BÜNDNIS 90/ DIE GRÜNEN": "Gruene",
     "Die Linke": "Linke",
     "DIE LINKE": "Linke",
+    "Linke": "Linke",
+    "Gruene": "Gruene",
     "SSW": "SSW",
 }
 

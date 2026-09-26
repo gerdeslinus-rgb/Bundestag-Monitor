@@ -128,7 +128,8 @@ def bogen(ergebnis: dict) -> dict | None:
             gezeichnet.append({**p, "farbe": fraktion["farbe"], "hohl": i >= ja})
         gelaufen += fraktion["sitze"]
         legende.append({"name": fraktion["name"], "farbe": fraktion["farbe"],
-                        "ja": ja, "sitze": fraktion["sitze"]})
+                        "ja": ja, "sitze": fraktion["sitze"],
+                        "position": (ergebnis.get("positionen") or {}).get(fraktion["key"])})
 
     gesamt = int(ergebnis.get("gesamt") or 0)
     return {
@@ -142,6 +143,10 @@ def bogen(ergebnis: dict) -> dict | None:
         # naemlich in der Mitte des Bogens - nie noch einmal im Hinweis.
         "benoetigt": gesamt // 2 + 1,
         "angenommen": bool(ergebnis.get("angenommen")),
+        # "handzeichen": gefuellt ist dann die ganze Fraktion, die dafuer war -
+        # eine Position, keine Stimmenzahl. Der Bogen zeigt dann keine Zahl
+        # (stimmen.py, Entscheidung 26.09.2026).
+        "art": ergebnis.get("art") or "namentlich",
         "legende": legende,
     }
 

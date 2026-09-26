@@ -76,6 +76,16 @@ def send_carousel(image_paths: list, caption: str, carousel: dict, nummer: int) 
     #    Die Recherche-Fundstellen sind NICHT woertlich gegengeprueft - deshalb
     #    stehen sie hier getrennt und ausdruecklich zum Nachsehen.
     zeilen = [f"Hauptquelle (belegt):\n{item['url']}"]
+    # Die Slide "Was fruehere Faelle zeigen" stuetzt sich allein auf diese
+    # Befunde - deshalb stehen sie einzeln da, mit Zahl und Adresse, und
+    # nicht nur irgendwo in der Trefferliste darunter.
+    faelle = carousel.get("recherche", {}).get("fruehere_faelle", [])
+    if faelle and (carousel.get("slides") or {}).get("vergleich"):
+        zeilen.append("\nFruehere Faelle (Slide 'Was fruehere Faelle zeigen', bitte pruefen):")
+        for f in faelle:
+            zeilen.append(f"- {f['massnahme']}: {f['wert']:g} {f['einheit']} "
+                          f"laut {f['stelle']}\n  {f['quelle_url']}")
+
     fundstellen = carousel.get("recherche", {}).get("fundstellen", [])
     if fundstellen:
         zeilen.append("\nRecherche (bitte pruefen):")
