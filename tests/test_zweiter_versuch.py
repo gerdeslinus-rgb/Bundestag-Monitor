@@ -5,8 +5,10 @@ Attrappen ersetzt, getestet wird nur die Schleife in build_carousels.
 
 Anlass (26.09.2026): der Tankrabatt fiel durch, weil das Modell in einem
 einzigen Satz "ueber die Laufzeit etwa 32 bis 36 Euro" hochgerechnet hatte.
-Eine unbelegte Zahl bekommt seitdem einen zweiten Versuch mit genau dieser
-Beanstandung. Ein Beleg-Satz, der nicht im Quelltext steht, weiterhin nicht.
+Unbelegte Zahlen bekommen seitdem einen zweiten Versuch - mit ALLEN auf
+einmal (sonst: erst 100 gestrichen, dann an 900 gescheitert) und dem
+erlaubten Ausweg, sie als Rechenbeispiel zu deklarieren. Ein Beleg-Satz,
+der nicht im Quelltext steht, weiterhin nicht.
 """
 import os
 import sys
@@ -48,13 +50,14 @@ def lauf(pruefungen, faktencheck=(True, "")):
 
 
 print("Unbelegte Zahl, dann sauber:")
-einwaende, n = lauf([("zahl", "32"), None])
+einwaende, n = lauf([("zahl", ["100", "900"]), None])
 pruefe("zwei Entwuerfe", len(einwaende), 2)
-pruefe("zweiter kennt die Zahl", "Die Zahl 32" in einwaende[1], True)
+pruefe("zweiter kennt ALLE Zahlen", "100, 900" in einwaende[1], True)
+pruefe("und den erlaubten Ausweg", "beispielwerte" in einwaende[1], True)
 pruefe("Karussell entsteht", n, 1)
 
 print("\nUnbelegte Zahl zweimal:")
-einwaende, n = lauf([("zahl", "32"), ("zahl", "36")])
+einwaende, n = lauf([("zahl", ["32"]), ("zahl", ["36"])])
 pruefe("zwei Entwuerfe, nicht drei", len(einwaende), 2)
 pruefe("kein Karussell", n, 0)
 
@@ -64,7 +67,7 @@ pruefe("kein zweiter Entwurf", len(einwaende), 1)
 pruefe("kein Karussell", n, 0)
 
 print("\nZahl im ersten, Faktencheck im zweiten Versuch:")
-einwaende, n = lauf([("zahl", "32"), None], faktencheck=(False, "Satz X"))
+einwaende, n = lauf([("zahl", ["32"]), None], faktencheck=(False, "Satz X"))
 pruefe("nicht noch ein dritter", len(einwaende), 2)
 pruefe("kein Karussell", n, 0)
 

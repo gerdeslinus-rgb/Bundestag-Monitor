@@ -334,6 +334,13 @@ Rechenbeispiele sind erlaubt und erwuenscht:
 - Ein Beispielwert muss im Text als Beispiel erkennbar sein. Eine
   Tatsachenbehauptung ist kein Beispielwert: ein Beschlussdatum, ein
   amtlicher Betrag oder eine Veraenderungsrate gehoeren NIE dorthin.
+- LETZTER SCHRITT vor der Antwort: geh JEDE Zahl auf allen Slides durch,
+  auch in "sowhat.schritte", "folgen" und "begriff.beispiel". Steht sie
+  nicht im Quelltext und nicht in den Recherche-Zahlen, muss sie in
+  "beispielwerte" oder "abgeleitete_zahlen" stehen. Die zwei haeufigsten
+  Luecken: jedes Zwischen- und Endergebnis deiner eigenen Rechnung
+  (Liter mal Cent, drei Monate mal Tankfuellung) und umgerechnete
+  Einheiten - "17 Cent" als "0,17 Euro" ist eine neue Zahl.
 
 Gerechnete Zahlen sind erlaubt, wenn du die Rechnung offenlegst:
 - Eine Zahl, die nicht in den Quellen steht, sich aber aus belegten Zahlen
@@ -1241,6 +1248,24 @@ Alles andere an deinem Entwurf war in Ordnung; aendere nur, was noetig ist.
 """
 
 
+def _zahlen_einwand(zahlen: list) -> str:
+    """Beanstandung fuer unbelegte Zahlen - mit dem erlaubten Ausweg.
+
+    Meist sind es Rechenbeispiele, die das Modell nicht in "beispielwerte"
+    eingetragen hat (50 Liter, 100 Kilometer). Das ist erlaubt, nur eben
+    deklariert. Eine Beanstandung ohne diesen Hinweis ("nicht belegt, auch
+    nicht als Rechnung") liess das Modell die Zahl streichen und die
+    naechste Rechnung genauso undeklariert hinschreiben.
+    """
+    liste = ", ".join(zahlen)
+    return (f"Diese Zahlen stehen weder im Quelltext noch in der Recherche: "
+            f"{liste}. Fuer JEDE davon gilt eins von beiden: streiche sie - "
+            f"oder, wenn sie ein Rechenbeispiel ist oder aus einem "
+            f"ausgerechnet wurde, trag sie in \"beispielwerte\" ein und mach "
+            f"sie im Text als Beispiel erkennbar. Das gilt auch fuer jede "
+            f"weitere Zahl, die du neu hinzufuegst.")
+
+
 def compose(item: dict, recherche: dict, einwand: str = "") -> dict | None:
     """Schreibt die Slides. None, wenn das Thema nichts hergibt.
 
@@ -1788,7 +1813,10 @@ def belegfehler(slides: dict, item: dict, recherche: dict) -> tuple | None:
     """Woertliche Belegpruefung der harten Fakten. None heisst bestanden.
 
     Sonst ("beleg", Satz) - der Beleg-Satz steht nicht in der Quelle - oder
-    ("zahl", Zahl) - eine Zahl auf den Slides ist nirgends belegt. Die beiden
+    ("zahl", [Zahlen]) - ALLE Zahlen auf den Slides, die nirgends belegt
+    sind. Alle, nicht die erste: mit nur einer Zahl in der Beanstandung
+    strich das Modell sie und die naechste fiel im zweiten Versuch durch
+    (Tankrabatt 26.09.2026: erst 100, dann 900). Die beiden
     Faelle sind verschieden schwer: ein fehlender Beleg heisst, der
     Quelltext gibt das Thema nicht her. Eine unbelegte Zahl ist meist ein
     einzelner Satz, in dem das Modell weitergerechnet hat ("ueber die
@@ -1839,6 +1867,7 @@ def belegfehler(slides: dict, item: dict, recherche: dict) -> tuple | None:
     beispiele = beispielwerte(slides)
     quelltext = item.get("text", "")
     abgeleitet = abgeleitete_zahlen(slides, quelltext, belegt)
+    unbelegt = []
     for schreibweisen in _slide_zahlen(slides):
         varianten = {w.rstrip(".,") for w in schreibweisen}
         if zahl_belegt(varianten, quelltext, belegt):
@@ -1851,9 +1880,10 @@ def belegfehler(slides: dict, item: dict, recherche: dict) -> tuple | None:
             continue
         zahl = sorted(varianten)[0]
         print(f"  x Zahl {zahl} weder in Quelle noch in Recherche belegt")
-        return ("zahl", zahl)
+        if zahl not in unbelegt:
+            unbelegt.append(zahl)
 
-    return None
+    return ("zahl", unbelegt) if unbelegt else None
 
 
 def _recherche_belege(recherche: dict) -> str:
@@ -2009,10 +2039,9 @@ def build_carousels(items: list, recherche_fn, anzahl: int | None = None,
                 return nummer, None
             fehler = belegfehler(slides, item, recherche)
             if fehler and fehler[0] == "zahl" and versuch == 1:
-                einwand = (f"Die Zahl {fehler[1]} steht weder im Quelltext "
-                           f"noch in der Recherche. Sie ist nicht belegt - "
-                           f"auch nicht als Rechnung oder Hochrechnung.")
-                print(f"  ~ zweiter Versuch (Zahl {fehler[1]}): {item['title'][:44]}")
+                einwand = _zahlen_einwand(fehler[1])
+                print(f"  ~ zweiter Versuch (Zahlen {', '.join(fehler[1])}): "
+                      f"{item['title'][:40]}")
                 continue
             if fehler:
                 return nummer, None
