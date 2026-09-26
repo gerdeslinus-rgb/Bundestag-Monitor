@@ -1,5 +1,6 @@
-"""Holt Rohmaterial: Bundestag-DIP, Destatis, Lobbyregister, Parteispenden,
-abgeordnetenwatch. Die Eigenheiten jeder Quelle stehen in QUELLEN.md."""
+"""Holt Rohmaterial: Bundestag-DIP und -Textarchiv, Destatis, Lobbyregister,
+Parteispenden, abgeordnetenwatch. Die Eigenheiten jeder Quelle stehen in
+QUELLEN.md."""
 
 import csv
 import hashlib
@@ -114,6 +115,11 @@ def ensure_volltext(item: dict) -> dict:
     """
     text = item.get("text", "")
     if len(text) >= config.VOLLTEXT_ZIEL_CHARS:
+        return item
+    # Der Textarchiv-Artikel IST der Volltext. Ein kurzer Beschluss ohne
+    # Aussprache hat nur 700 Zeichen - das allgemeine Nachladen unten holte
+    # dann die ganze Seite samt Navigation und Rednerliste.
+    if item.get("textarchiv_id"):
         return item
 
     # DIP-Vorgaenge haben keinen abrufbaren Artikel: dip.bundestag.de baut die
@@ -553,6 +559,252 @@ def dip_drucksachen(vorgang_id: str) -> list:
     return nummern
 
 
+# --- Textarchiv des Bundestages ----------------------------------------------
+
+_MONATSNR = {m: i for i, m in enumerate(
+    ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August",
+     "September", "Oktober", "November", "Dezember"], start=1)}
+_TA_DATUM = re.compile(r"(\d{1,2})\.\s*(" + "|".join(_MONATSNR) + r")\s+(\d{4})")
+
+# Ein Beschluss steht in der Ueberschrift oder im ersten Absatz, jeweils als
+# Verb: "beschliesst", "lehnt ... ab", "zugestimmt".
+_TA_BESCHLUSS = re.compile(
+    r"beschlossen|beschließt|verabschiedet|angenommen|nimmt\b.{0,80}?\ban\b"
+    r"|abgelehnt|lehnt\b.{0,80}?\bab\b|zugestimmt|stimmt\b.{0,80}?\bzu\b",
+    re.IGNORECASE | re.DOTALL)
+# Nur Gesetze und vergleichbar Gewichtiges. Abgelehnte Oppositionsantraege
+# gibt es in jeder Sitzungswoche dutzendfach - das Signal fehlt dort. Ganze
+# Woerter: ein AfD-Antrag, der "alle Gesetze und Verordnungen" aufheben
+# wollte, ist trotzdem ein Antrag (24.09.2026).
+_TA_GEWICHT = re.compile(
+    r"Gesetzentw|\w*gesetz(?:es|buch|buches)?\b|Vermittlungs|Staatsvertrag"
+    r"|Abkommen|Übereinkommen|Bundeswehr|Verordnung\b", re.IGNORECASE)
+# Erste Lesung, abgesetzte Punkte, Debatten ohne Abstimmung.
+_TA_KEIN_BESCHLUSS = re.compile(
+    r"^Abgesetzt|in erster (?:Lesung|Beratung)|Aktuelle Stunde|Befragung der"
+    r"|Fragestunde|Vereinbarte Debatte", re.IGNORECASE)
+# Kuerzel der Redaktion am Artikelende: "(hle/vom/25.09.2026)".
+_TA_ENDE = re.compile(r"\([a-zäöü]{2,5}(?:/[a-zäöü]{2,5})*/\d{2}\.\d{2}\.\d{4}\)$")
+_TA_DRUCKSACHE = re.compile(r"\b(2\d/\d{3,5})\b")
+
+
+def _ta_glatt(fragment: str) -> str:
+    """HTML zu Text, ohne Leerzeichen VOR Satzzeichen.
+
+    _clean() ersetzt jedes Tag durch ein Leerzeichen. Aus
+    "<strong>25. September 2026</strong>, nach" wird so "2026 , nach" - und
+    ein Beleg-Satz, der das Datum korrekt zitiert, faende sich im Quelltext
+    nicht wieder. Inline-Tags fallen deshalb ersatzlos weg. Dazu der
+    bedingte Trennstrich (Tank&shy;rabatt), der Suchen und Zitieren bricht,
+    und der Linkhinweis hinter jeder Drucksachennummer.
+    """
+    text = re.sub(r"<[^>]+>", "", fragment or "")
+    text = html.unescape(text).replace("\xad", "")
+    text = text.replace("(Dokument, öffnet ein neues Fenster)", "")
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _ta_datum(text: str) -> date | None:
+    treffer = _TA_DATUM.search(text or "")
+    if not treffer:
+        return None
+    tag, monat, jahr = treffer.groups()
+    try:
+        return date(int(jahr), _MONATSNR[monat], int(tag))
+    except ValueError:
+        return None
+
+
+def ta_beschluss(titel: str, teaser: str) -> bool:
+    """Berichtet der Artikel ueber einen Beschluss zu einem Gesetz?
+
+    Deterministisch, ohne Modell - dieselbe Rolle wie DIP_BESCHLOSSEN bei
+    DIP. Geprueft werden Ueberschrift und erster Absatz: dort sagt die
+    Redaktion, was passiert ist. Weiter unten stehen oft Nebensaetze wie
+    "einen Entschliessungsantrag lehnte der Bundestag ab", die einen
+    Artikel ueber eine erste Lesung sonst als Beschluss durchgehen liessen.
+    """
+    kopf = f"{titel} {teaser[:450]}"
+    if _TA_KEIN_BESCHLUSS.search(titel) or _TA_KEIN_BESCHLUSS.search(teaser[:300]):
+        return False
+    return bool(_TA_BESCHLUSS.search(kopf) and _TA_GEWICHT.search(kopf))
+
+
+def _ta_liste(seite: int) -> list:
+    """Artikel-IDs einer Seite der Archivliste, neueste zuerst."""
+    resp = requests.get(config.TEXTARCHIV_LISTE, headers=UA, timeout=30,
+                        params={"limit": 20, "offset": seite * 20,
+                                "noFilterSet": "true"})
+    resp.raise_for_status()
+    return list(dict.fromkeys(re.findall(r'data-for-id="slider_(\d+)"', resp.text)))
+
+
+def _ta_kopf(artikel_id: str) -> dict | None:
+    """Ueberschrift, Pfad und erster Absatz eines Artikels."""
+    try:
+        resp = requests.get(config.TEXTARCHIV_ARTIKEL.format(id=artikel_id),
+                            headers=UA, timeout=20)
+        resp.raise_for_status()
+        eintrag = resp.json()["items"][0]
+    except Exception:
+        return None
+    teaser = _ta_glatt(eintrag.get("text-description", ""))
+    return {"id": artikel_id,
+            "titel": _ta_glatt(eintrag.get("teaser-title", "")),
+            "pfad": eintrag.get("href", ""),
+            "teaser": teaser,
+            "datum": _ta_datum(teaser)}
+
+
+def _ta_volltext(url: str, teaser: str) -> str:
+    """Der Artikeltext von der Seite, sonst der erste Absatz.
+
+    Die Seite traegt neben dem Artikel Navigation, verwandte Artikel und die
+    Rednerliste. Der Artikel beginnt mit dem Absatz, den auch die Liste als
+    Anriss zeigt, und endet mit dem Redaktionskuerzel - dazwischen wird
+    gelesen, nichts sonst.
+    """
+    try:
+        resp = requests.get(url, headers=UA, timeout=20)
+        resp.raise_for_status()
+    except Exception as exc:
+        print(f"    ! Textarchiv-Artikel nicht ladbar ({url}): {exc}")
+        return teaser
+    seite = re.sub(r"<(script|style)[^>]*>.*?</\1>", " ", resp.text,
+                   flags=re.IGNORECASE | re.DOTALL)
+    absaetze = [_ta_glatt(a) for _, a in
+                re.findall(r"<(p|h2|h3)[^>]*>(.*?)</\1>", seite, flags=re.DOTALL)]
+    absaetze = [a for a in absaetze if a]
+    anfang = teaser[:60]
+    start = next((i for i, a in enumerate(absaetze) if a[:60] == anfang), None)
+    if start is None:
+        return teaser
+    ende = next((i for i in range(start, len(absaetze))
+                 if _TA_ENDE.search(absaetze[i])), None)
+    if ende is None:
+        # Ohne Kuerzel keine sichere Grenze - lieber der korrekte Anriss als
+        # ein Text, in den die Rednerliste hineinlaeuft.
+        return teaser
+    return " ".join(absaetze[start:ende + 1])[:config.FULLTEXT_MAX_CHARS]
+
+
+_TA_VORGANG_CACHE: dict = {}
+
+
+def _ta_vorgang(nummern: list) -> dict | None:
+    """Der DIP-Gesetzgebungsvorgang zu den Drucksachen eines Artikels.
+
+    Ueber drucksache?f.dokumentnummer - das liefert je Drucksache ihren
+    "vorgangsbezug". Die erste Nummer, die auf ein Gesetz fuehrt, gilt: ein
+    Artikel nennt zuerst den Gesetzentwurf, danach Beschlussempfehlung und
+    Entschliessungsantraege.
+    """
+    for nummer in nummern[:4]:
+        if nummer not in _TA_VORGANG_CACHE:
+            antwort = _dip_get("drucksache", **{"f.dokumentnummer": nummer,
+                                                "f.zuordnung": "BT"}) or {}
+            bezug = None
+            for dok in antwort.get("documents", []):
+                if dok.get("dokumentnummer") != nummer:
+                    continue
+                for vorgang in dok.get("vorgangsbezug") or []:
+                    if vorgang.get("vorgangstyp") in (None, config.DIP_VORGANGSTYP):
+                        bezug = {"id": str(vorgang.get("id")),
+                                 "titel": vorgang.get("titel", "")}
+                        break
+                if bezug:
+                    break
+            _TA_VORGANG_CACHE[nummer] = bezug
+        if _TA_VORGANG_CACHE[nummer]:
+            return _TA_VORGANG_CACHE[nummer]
+    return None
+
+
+def fetch_textarchiv(tage: int | None = None) -> list:
+    """Beschluesse des Bundestages aus seinem Textarchiv, noch vom Sitzungstag.
+
+    Ergaenzt fetch_dip() um das, was DIP noch nicht weiss: der Beratungsstand
+    dort hinkt einen Tag oder mehr hinterher, und ein Gesetz, an das der
+    Ausschuss etwas angehaengt hat, heisst im DIP nach seinem Ursprung. Der
+    Tankrabatt vom 25.09.2026 stand am Abend im DIP als "Beschlussempfehlung
+    liegt vor" eines Versicherungsgesetzes - im Textarchiv um 09:25 Uhr als
+    "Bundestag beschliesst Tankrabatt".
+
+    Fuehrt ein Artikel ueber seine Drucksachen zu einem DIP-Vorgang, bekommt
+    das Item DESSEN ID. Sonst kaeme dasselbe Gesetz ein paar Tage spaeter
+    ueber fetch_dip() noch einmal - seen.json kennte es unter anderer ID.
+    """
+    if not config.TEXTARCHIV_ENABLED:
+        return []
+    grenze = (datetime.now(timezone.utc)
+              - timedelta(days=tage or config.TEXTARCHIV_TAGE)).date()
+
+    koepfe = []
+    try:
+        for seite in range(config.TEXTARCHIV_MAX_SEITEN):
+            ids = _ta_liste(seite)
+            if not ids:
+                break
+            with ThreadPoolExecutor(max_workers=4) as pool:
+                neu = [k for k in pool.map(_ta_kopf, ids) if k]
+            koepfe += neu
+            # Die Liste ist nach Datum sortiert; steht eine ganze Seite vor
+            # der Grenze, kommt nichts Neueres mehr.
+            if neu and all(k["datum"] and k["datum"] < grenze for k in neu):
+                break
+    except Exception as exc:
+        print(f"  ! Textarchiv nicht erreichbar: {exc}")
+        return []
+
+    beschluesse = [k for k in koepfe
+                   if k["datum"] and k["datum"] >= grenze
+                   and ta_beschluss(k["titel"], k["teaser"])]
+
+    items, vergeben = [], set()
+    for kopf in beschluesse:
+        url = config.TEXTARCHIV_BASIS + kopf["pfad"]
+        text = _ta_volltext(url, kopf["teaser"])
+        nummern = list(dict.fromkeys(_TA_DRUCKSACHE.findall(text)))
+        vorgang = _ta_vorgang(nummern) if nummern else None
+        item_id = (_hash("dipvorgang" + vorgang["id"]) if vorgang
+                   else _hash("textarchiv" + kopf["id"]))
+        # Zwei Artikel zum selben Gesetz (Beschluss und Vermittlungsergebnis):
+        # der neuere reicht.
+        if item_id in vergeben:
+            continue
+        vergeben.add(item_id)
+        tag = kopf["datum"]
+        items.append({
+            "id": item_id,
+            "source": f"Bundestag, Textarchiv vom {_de_datum(tag)}",
+            "weight": 5,
+            "tier": "kern",
+            "title": kopf["titel"][:120],
+            "text": text,
+            "url": url,
+            "date": tag.isoformat(),
+            "textarchiv_id": kopf["id"],
+            # Nur zur Nachverfolgung - NICHT dip_vorgang_id: daran haengt
+            # ensure_volltext() den Drucksachentext, und der wuerde den
+            # Artikel ersetzen.
+            "dip_vorgang_bezug": vorgang["id"] if vorgang else None,
+            "drucksachen": nummern,
+        })
+    print(f"  + Textarchiv: {len(koepfe)} Artikel gelesen, "
+          f"{len(items)} Beschluesse zu Gesetzen")
+    return items
+
+
+def mit_textarchiv(archiv: list, dip: list) -> list:
+    """Textarchiv und DIP als eine Kandidatenliste, jedes Gesetz einmal.
+
+    Kennt das Textarchiv ein Gesetz auch, gewinnt sein Item: gleiche ID,
+    aber aktueller Stand und die Ueberschrift, die das Thema nennt.
+    """
+    ids = {it["id"] for it in archiv}
+    return archiv + [it for it in dip if it["id"] not in ids]
+
+
 # --- Parteispenden -----------------------------------------------------------
 
 _PARTEI_KURZ = {"Bündnis 90/ Die Grünen": "Grüne", "Bündnis 90/Die Grünen": "Grüne",
@@ -787,7 +1039,7 @@ def prefilter(items: list, seen: set) -> list:
 # Netz - nacheinander gelesen dauert das ueber 100 Sekunden, die praktisch
 # vollstaendig Leerlauf sind. Bewusst wenige Arbeiter: es sind fremde, meist
 # amtliche Server, und die Fetcher laden teilweise noch Artikelseiten nach.
-_FETCHER = (fetch_destatis, fetch_dip)
+_FETCHER = (fetch_destatis, fetch_dip, fetch_textarchiv)
 COLLECT_WORKERS = 5
 
 
@@ -813,17 +1065,21 @@ def collect() -> tuple:
     print("Quellen werden gelesen ...")
     seen = load_seen()
 
-    raw = []
+    raw, archiv = [], []
     with ThreadPoolExecutor(max_workers=COLLECT_WORKERS) as pool:
         futures = {pool.submit(f): f.__name__ for f in _FETCHER}
         for future in as_completed(futures):
             try:
-                raw += future.result()
+                if futures[future] == "fetch_textarchiv":
+                    archiv = future.result()
+                else:
+                    raw += future.result()
             except Exception as exc:
                 # Eine tote Quelle darf den Lauf nicht kippen - genau wie in
                 # den Fetchern selbst, die ihre Fehler schon einzeln abfangen.
                 print(f"  ! {futures[future]} fehlgeschlagen: {exc}")
 
+    raw = mit_textarchiv(archiv, raw)
     filtered = prefilter(raw, seen)
     print(f"  = {len(raw)} roh, {len(filtered)} nach Vorfilter")
     return filtered, seen

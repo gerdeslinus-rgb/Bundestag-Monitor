@@ -123,11 +123,33 @@ DIP_BESCHLOSSEN = {
 #
 # "Bundestag, Vorgang ..." ist sicher: fetch_dip() laesst nur Vorgaenge aus
 # DIP_BESCHLOSSEN durch. Eine namentliche Abstimmung hat stattgefunden, ein
-# Tagesordnungspunkt dagegen steht erst an.
+# Tagesordnungspunkt dagegen steht erst an. "Bundestag, Textarchiv" ebenso:
+# fetch_textarchiv() nimmt nur Artikel ueber gefallene Beschluesse.
 ENTSCHIEDEN_QUELLEN = (
     "Bundestag, Vorgang ",
+    "Bundestag, Textarchiv",
     "namentliche Abstimmung",
 )
+
+# --- Textarchiv des Bundestages (QUELLEN.md, Abschnitt 7) --------------------
+# Die Parlamentsredaktion berichtet noch am Sitzungstag, was beschlossen
+# wurde - DIP traegt den Beratungsstand erst einen Tag oder mehr spaeter
+# nach. Und die Artikel nennen das eigentliche Thema: der Tankrabatt vom
+# 25.09.2026 hing als Artikel 11-13 an einem Versicherungsgesetz und hiess im
+# DIP entsprechend. Beide Adressen sind nicht dokumentiert - sie stammen aus
+# der Archivseite selbst. Aendert der Bundestag sie, liefert der Fetcher
+# nichts, und der Lauf faehrt mit DIP allein weiter.
+TEXTARCHIV_ENABLED = True
+TEXTARCHIV_BASIS = "https://www.bundestag.de"
+# Neueste zuerst, 20 je Seite; liefert nur die Artikel-IDs.
+TEXTARCHIV_LISTE = TEXTARCHIV_BASIS + "/ajax/filterlist/de/dokumente/textarchiv/454772-454772"
+# Je Artikel: Ueberschrift, Pfad und der erste Absatz.
+TEXTARCHIV_ARTIKEL = (TEXTARCHIV_BASIS
+                      + "/blueprint/servlet/ajax/content/de/{id}-{id}/asJsonSliderResult")
+# Vier Tage: der Montagslauf sieht noch Donnerstag und Freitag.
+TEXTARCHIV_TAGE = 4
+# In einer Sitzungswoche erscheinen rund 30 Artikel am Tag.
+TEXTARCHIV_MAX_SEITEN = 8
 
 # Gesetze werden in Sitzungswochen beschlossen, nicht gleichmaessig ueber den
 # Monat verteilt - ein 30-Stunden-Fenster waere an den meisten Tagen leer.

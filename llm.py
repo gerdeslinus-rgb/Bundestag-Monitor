@@ -691,6 +691,13 @@ def verfahrensstand(item: dict) -> str:
                     f"'{stand}'. Die Abstimmung hat also stattgefunden, auch "
                     f"wenn der Quelltext unten die Beschlussempfehlung von "
                     f"davor ist.")
+    if quelle.startswith("Bundestag, Textarchiv"):
+        return ("Der Quelltext ist der Bericht der Parlamentsredaktion des "
+                "Bundestages ueber die Sitzung, in der abgestimmt wurde. Was "
+                "er als beschlossen, abgelehnt oder zugestimmt nennt, ist "
+                "entschieden. Nicht jedes Gesetz ist damit schon in Kraft: "
+                "der Bundesrat kann noch ausstehen - schreibe dazu nur, was "
+                "der Quelltext sagt.")
     if "namentliche Abstimmung" in quelle:
         return "Die Abstimmung hat stattgefunden, das Ergebnis liegt vor."
     return "nicht bekannt - schreibe nichts ueber den Verfahrensstand"

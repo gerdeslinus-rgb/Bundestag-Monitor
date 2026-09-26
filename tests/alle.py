@@ -34,6 +34,7 @@ SUITEN = [
     ("Abgeleitete Zahlen", "test_abgeleitete_zahlen.py"),
     ("Kaufkraft", "test_kaufkraft.py"),
     ("Datenkarussells", "test_datenkarussells.py"),
+    ("Textarchiv", "test_textarchiv.py"),
 ]
 
 

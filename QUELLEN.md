@@ -7,7 +7,8 @@ groesseren Umstellung die betroffene Stelle kurz nachmessen und diese Datei
 nachziehen.
 
 Wie der Tag aufgebaut ist (seit 25.09.2026): Karussell 1 ist ein
-beschlossenes Gesetz aus DIP, Karussell 2 kommt aus einer zufaellig gezogenen
+beschlossenes Gesetz aus DIP oder dem Textarchiv (Abschnitt 7, seit
+26.09.2026 - beide in einer Kandidatenliste), Karussell 2 kommt aus einer zufaellig gezogenen
 Kategorie - Destatis, Lobbyregister, Parteispenden, Nebentaetigkeiten
 (`config.WEITERE_KATEGORIEN`, Bau in `weitere.py`, Slide-Vorlagen in
 VORLAGEN.md). Liefert DIP nichts, kommen beide aus zwei verschiedenen
@@ -417,6 +418,78 @@ Abweichlern. Mehrfacheintraege derselben Person/Organisation fuer
 verschiedene Zeitraeume: der Zeitraum steht in `job_title_extra`
 ("Einkommen im Jahr 2025"), nicht in `interval`. Nicht addieren; auf dem
 Balken steht das Jahr dabei ("Eintracht Frankfurt 2025").
+
+---
+
+## 7. Textarchiv des Bundestages (Beschluesse vom Sitzungstag)
+
+**Warum:** DIP hinkt. Der Tankrabatt wurde am Freitag, 25.09.2026, um 09:25
+im Textarchiv gemeldet ("Bundestag beschliesst Tankrabatt ..."). Im DIP stand
+der Vorgang am Samstag noch auf "Beschlussempfehlung liegt vor" - und hiess
+"Gesetz zur Umsetzung der Richtlinien (EU) 2025/1 ... Versicherungsunternehmen",
+weil der Finanzausschuss den Tankrabatt als Artikel 11-13 an das VSAAG
+gehaengt hatte. Die Artikel der Parlamentsredaktion nennen das eigentliche
+Thema und stehen noch am Sitzungstag online.
+
+**Zugang (kein Key, nicht dokumentiert - aus der Archivseite abgelesen):**
+
+    Liste:   https://www.bundestag.de/ajax/filterlist/de/dokumente/textarchiv/454772-454772?limit=20&offset=0&noFilterSet=true
+    Artikel: https://www.bundestag.de/blueprint/servlet/ajax/content/de/<id>-<id>/asJsonSliderResult
+    Seite:   https://www.bundestag.de/dokumente/textarchiv/<id>  (leitet auf die volle Adresse um)
+
+Die Liste liefert je Seite 20 Artikel-IDs (`data-for-id="slider_<id>"`),
+neueste zuerst, 6739 Artikel am 26.09.2026. Das Artikel-JSON hat
+`teaser-title`, `href` und `text-description` - nur den ersten Absatz (rund
+500 Zeichen), kein Datum. Das Datum steht im ersten Satz ("am Freitag,
+25. September 2026"). Den ganzen Text hat nur die Artikelseite.
+
+Der RSS-Feed "Aktuelle Themen" (`/static/appdata/includes/rss/aktuellethemen.rss`)
+hat denselben Inhalt samt Volltext, haelt aber nur 15 Eintraege - in einer
+Sitzungswoche rund anderthalb Tage. Deshalb die Liste.
+
+**Was wir holen:** Artikel der letzten 4 Tage (`TEXTARCHIV_TAGE`, damit der
+Montagslauf Donnerstag und Freitag noch sieht). Am 26.09.2026 waren das 140
+Artikel in 46 Sekunden, davon 9 Beschluesse zu Gesetzen.
+
+**Beschluss oder nicht** (`sources.ta_beschluss`, ohne Modell): Ueberschrift
+und erster Absatz muessen ein Beschlussverb enthalten (beschlossen,
+angenommen, abgelehnt, zugestimmt, verabschiedet ...) UND ein Gesetz nennen
+(ganzes Wort: "...gesetz", "...gesetzes", "Gesetzentwurf", "Verordnung",
+Vermittlungsergebnis, Abkommen, Bundeswehr). Raus sind erste Lesungen,
+"Abgesetzt:", Aktuelle Stunden, Befragungen - und abgelehnte Antraege der
+Opposition, die es jede Woche dutzendfach gibt (Entscheidung 26.09.2026).
+Ein abgelehnter Gesetzentwurf zaehlt dagegen, wie bei DIP.
+
+**Volltext:** Die Artikelseite enthaelt Navigation, verwandte Artikel und die
+Rednerliste. Gelesen wird vom Absatz, der wie der Anriss beginnt, bis zum
+Absatz mit dem Redaktionskuerzel am Ende ("(hle/vom/25.09.2026)"). Fehlt das
+Kuerzel, bleibt es beim Anriss. `ensure_volltext()` laesst Textarchiv-Items
+in Ruhe - sonst holte es fuer kurze Artikel die ganze Seite.
+
+**Verknuepfung mit DIP:** Die Drucksachennummern im Artikel ("21/6561") fuehren
+ueber `drucksache?f.dokumentnummer=21/6561&f.zuordnung=BT` zum
+`vorgangsbezug`. Gibt es einen Gesetzgebungsvorgang, bekommt das Item DESSEN
+ID (`_hash("dipvorgang" + id)`) - dieselbe wie bei `fetch_dip()`. Damit steht
+ein Gesetz nur einmal in der Auswahl (`mit_textarchiv`: das Textarchiv-Item
+gewinnt), und nach dem Post kommt es nicht Tage spaeter ueber DIP zurueck.
+`dip_vorgang_id` wird bewusst NICHT gesetzt: daran haengt `ensure_volltext()`
+den Drucksachentext, der den Artikel ersetzen wuerde.
+
+**Fallstricke:**
+- Inline-Tags: `_clean()` macht aus `<strong>2026</strong>,` "2026 ," - ein
+  korrekt zitierter Beleg-Satz faende sich dann nicht wieder. `_ta_glatt()`
+  entfernt Tags ohne Leerzeichen, dazu `&shy;` (Tank&shy;rabatt) und den
+  Linkhinweis "(Dokument, oeffnet ein neues Fenster)".
+- Ein Artikel kann mehrere Beschluesse buendeln ("Abschliessende Beratungen
+  ohne Aussprache", Tankrabatt plus Versicherungsrecht). Verknuepft wird
+  ueber die erste Drucksache, die zu einem Gesetz fuehrt.
+- Die Adressen koennen sich ohne Ankuendigung aendern. Dann liefert der
+  Fetcher eine leere Liste, und der Lauf faehrt mit DIP allein weiter.
+
+**Nicht genommen:** hib-Meldungen (Ausschuesse - "Finanzausschuss beschliesst
+Tankrabatt" kam am Mittwoch, VOR der Abstimmung im Plenum) und
+Plenarprotokolle (erscheinen erst am naechsten Morgen, der vom Freitag lag
+am Samstag noch nicht vor).
 
 ---
 

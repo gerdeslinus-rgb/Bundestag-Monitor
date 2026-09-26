@@ -936,9 +936,10 @@ HASHTAGS = "#politik #bundestag #deutschland #erklaert"
 
 
 def _caption_quelle(quelle: str) -> str:
-    """DIP liefert "Bundestag, Vorgang Verabschiedet" - der Beratungsstand
-    ist fuer die Suche gedacht, nicht fuer Leser."""
-    if quelle.startswith("Bundestag, Vorgang"):
+    """DIP liefert "Bundestag, Vorgang Verabschiedet", das Textarchiv
+    "Bundestag, Textarchiv vom ..." - beides ist fuer die Suche gedacht,
+    nicht fuer Leser. Das Datum steht in der Zeile ohnehin."""
+    if quelle.startswith(("Bundestag, Vorgang", "Bundestag, Textarchiv")):
         return "Deutscher Bundestag"
     return quelle
 

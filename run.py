@@ -37,17 +37,21 @@ def main() -> int:
     seen = sources.load_seen()
     carousels = []
 
-    # Feste Rollen: Karussell 1 ist ein beschlossenes Gesetz aus DIP,
-    # Karussell 2 kommt aus einer zufaellig gezogenen weiteren Kategorie
-    # (weitere.py). Liefert DIP nichts, kommen beide aus zwei verschiedenen
+    # Feste Rollen: Karussell 1 ist ein beschlossenes Gesetz aus DIP oder dem
+    # Textarchiv, Karussell 2 kommt aus einer zufaellig gezogenen weiteren
+    # Kategorie (weitere.py). Liefert keins davon etwas, kommen beide aus zwei verschiedenen
     # Kategorien - ein Tag ohne Gesetz ist kein Tag ohne Post.
     print()
-    print("DIP: beschlossene Gesetze ...")
+    print("DIP und Textarchiv: beschlossene Gesetze ...")
     gesetze = sources.fetch_dip()
-    items = sources.prefilter(gesetze, seen)
+    # Das Textarchiv berichtet noch am Sitzungstag - DIP traegt den
+    # Beschluss erst einen Tag spaeter nach. Beide in einen Topf, die
+    # Themenauswahl entscheidet; dasselbe Gesetz steht nur einmal darin.
+    archiv = sources.fetch_textarchiv()
+    items = sources.prefilter(sources.mit_textarchiv(archiv, gesetze), seen)
     if items:
         carousels += llm.build_carousels(items, research.enrich, 1)
-    print(f"  = DIP: {len(carousels)} Karussell(s)")
+    print(f"  = Gesetze: {len(carousels)} Karussell(s)")
 
     # Das Lobby-Karussell nimmt dieselben Gesetze - aber nicht das, ueber das
     # Karussell 1 heute schon berichtet.
