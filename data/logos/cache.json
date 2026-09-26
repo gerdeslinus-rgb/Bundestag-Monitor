@@ -134,5 +134,25 @@
   "autor": "",
   "seite": "https://commons.wikimedia.org/wiki/File:DGPPN_201x_logo.svg",
   "stand": 739884
+ },
+ "Bundesverband der Deutschen Industrie e.V.": {
+  "pfad": null,
+  "stand": 739885
+ },
+ "EnBW Energie Baden-Württemberg AG": {
+  "datei": "EnBW Logo 2022.svg",
+  "pfad": "enbw-logo-2022.svg",
+  "lizenz": "Public domain",
+  "autor": "EnBW Energie Baden-Württemberg AG",
+  "seite": "https://commons.wikimedia.org/wiki/File:EnBW_Logo_2022.svg",
+  "stand": 739885
+ },
+ "NABU (Naturschutzbund Deutschland) e. V.": {
+  "pfad": null,
+  "stand": 739885
+ },
+ "Arbeitsgemeinschaft Deutscher Waldbesitzerverbände (AGDW) e.V.": {
+  "pfad": null,
+  "stand": 739885
  }
 }
