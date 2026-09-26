@@ -1228,7 +1228,7 @@ def _einwand_block(einwand: str) -> str:
     if not einwand.strip():
         return ""
     return f"""
-ACHTUNG - ZWEITER VERSUCH. Dein erster Entwurf ist am Faktencheck
+ACHTUNG - ZWEITER VERSUCH. Dein erster Entwurf ist an der Pruefung
 gescheitert. Die Beanstandung lautete:
 
     {einwand.strip()}
@@ -1776,7 +1776,24 @@ def evidenz_zahl_erfunden(satz: str, quelltext: str) -> str | None:
 
 
 def verify_slides(slides: dict, item: dict, recherche: dict) -> bool:
-    """Woertliche Belegpruefung der harten Fakten.
+    """Woertliche Belegpruefung der harten Fakten - Ja oder Nein.
+
+    Der Grund steht in belegfehler(); diese Fassung ist fuer alle, die nur
+    das Urteil brauchen (debug_lauf, Tests).
+    """
+    return belegfehler(slides, item, recherche) is None
+
+
+def belegfehler(slides: dict, item: dict, recherche: dict) -> tuple | None:
+    """Woertliche Belegpruefung der harten Fakten. None heisst bestanden.
+
+    Sonst ("beleg", Satz) - der Beleg-Satz steht nicht in der Quelle - oder
+    ("zahl", Zahl) - eine Zahl auf den Slides ist nirgends belegt. Die beiden
+    Faelle sind verschieden schwer: ein fehlender Beleg heisst, der
+    Quelltext gibt das Thema nicht her. Eine unbelegte Zahl ist meist ein
+    einzelner Satz, in dem das Modell weitergerechnet hat ("ueber die
+    Laufzeit etwa 32 bis 36 Euro", Tankrabatt 26.09.2026) - der Rest des
+    Entwurfs ist in Ordnung.
 
     Geprueft wird gegen den Quelltext unserer amtlichen Quelle. Zahlen, die
     nachweislich aus der Recherche stammen (Vergleichswerte mit Fundstelle),
@@ -1797,7 +1814,7 @@ def verify_slides(slides: dict, item: dict, recherche: dict) -> bool:
     evidence_raw = slides.get("fakten_evidence", "")
     if len(_normalise(evidence_raw)) < 20:
         print(f"  x kein Beleg: {slides.get('titel', '')[:40]}")
-        return False
+        return ("beleg", "")
 
     quelle = _normalise(item.get("text", ""))
     quelltext_roh = item.get("text", "")
@@ -1808,13 +1825,13 @@ def verify_slides(slides: dict, item: dict, recherche: dict) -> bool:
         ratio = belegquote(norm, quelle)
         if ratio < config.EVIDENCE_THRESHOLD:
             print(f"  x Beleg-Satz nicht in Quelle ({ratio:.2f}): {sentence[:60]}")
-            return False
+            return ("beleg", sentence)
         # Untrennbar von der Quote oben: siehe evidenz_zahl_erfunden().
         erfunden = evidenz_zahl_erfunden(sentence, quelltext_roh)
         if erfunden:
             print(f"  x Beleg-Satz nennt Zahl {erfunden}, die nicht in der "
                   f"Quelle steht: {sentence[:60]}")
-            return False
+            return ("beleg", sentence)
 
     # Jede Zahl muss entweder im Quelltext stehen oder aus der Recherche mit
     # Fundstelle stammen. Alles andere waere eine erfundene Zahl.
@@ -1832,10 +1849,11 @@ def verify_slides(slides: dict, item: dict, recherche: dict) -> bool:
         # Aus belegten Zahlen ausgerechnet und hier bereits nachgerechnet.
         if varianten & abgeleitet:
             continue
-        print(f"  x Zahl {sorted(varianten)[0]} weder in Quelle noch in Recherche belegt")
-        return False
+        zahl = sorted(varianten)[0]
+        print(f"  x Zahl {zahl} weder in Quelle noch in Recherche belegt")
+        return ("zahl", zahl)
 
-    return True
+    return None
 
 
 def _recherche_belege(recherche: dict) -> str:
@@ -1978,8 +1996,10 @@ def build_carousels(items: list, recherche_fn, anzahl: int | None = None,
         # scheitert in der Praxis an einem einzigen Satz, nicht am ganzen
         # Entwurf - und Recherche wie Entwurf sind da laengst bezahlt.
         #
-        # Die Belegpruefung ist bewusst NICHT in der Schleife: ein
-        # Beleg-Satz, der nicht im Quelltext steht, ist kein
+        # Die Zahlenpruefung gehoert dazu: eine unbelegte Zahl steht fast
+        # immer in einem einzigen Satz, in dem das Modell weitergerechnet
+        # hat. Der Beleg-Satz dagegen bleibt bewusst AUSSERHALB der
+        # Schleife: steht er nicht im Quelltext, ist das kein
         # Formulierungsproblem, sondern ein Thema, das der Quelltext nicht
         # hergibt. Ein zweiter Versuch waere dort nur ein zweiter Fehlschlag.
         einwand = ""
@@ -1987,7 +2007,14 @@ def build_carousels(items: list, recherche_fn, anzahl: int | None = None,
             slides = compose(item, recherche, einwand)
             if not slides:
                 return nummer, None
-            if not verify_slides(slides, item, recherche):
+            fehler = belegfehler(slides, item, recherche)
+            if fehler and fehler[0] == "zahl" and versuch == 1:
+                einwand = (f"Die Zahl {fehler[1]} steht weder im Quelltext "
+                           f"noch in der Recherche. Sie ist nicht belegt - "
+                           f"auch nicht als Rechnung oder Hochrechnung.")
+                print(f"  ~ zweiter Versuch (Zahl {fehler[1]}): {item['title'][:44]}")
+                continue
+            if fehler:
                 return nummer, None
             bestanden, einwand = judge_slides(slides, item, recherche)
             if bestanden:

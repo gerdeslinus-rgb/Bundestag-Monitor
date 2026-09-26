@@ -35,6 +35,7 @@ SUITEN = [
     ("Kaufkraft", "test_kaufkraft.py"),
     ("Datenkarussells", "test_datenkarussells.py"),
     ("Textarchiv", "test_textarchiv.py"),
+    ("Zweiter Versuch", "test_zweiter_versuch.py"),
 ]
 
 
