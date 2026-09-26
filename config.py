@@ -104,8 +104,15 @@ DIP_VORGANGSTYP = "Gesetzgebung"
 
 # Nur entschiedene Vorgaenge. "Abgelehnt" gehoert dazu: dass der Bundestag
 # etwas NICHT beschlossen hat, ist genauso eine Nachricht wie das Gegenteil.
+#
+# Nach dem Bundesrat steht ein Gesetz NICHT mehr auf "Verabschiedet", sondern
+# auf einem der beiden Bundesrat-Staende - bis es verkuendet ist. Fehlen die
+# hier, faellt jedes Gesetz genau dann heraus, wenn es fertig ist: am
+# 25.09.2026 waren das zehn, darunter das antragslose Kindergeld.
 DIP_BESCHLOSSEN = {
     "Verkündet", "Verabschiedet", "Angenommen", "Abgelehnt", "Abgeschlossen",
+    "Bundesrat hat zugestimmt",
+    "Bundesrat hat Vermittlungsausschuss nicht angerufen",
 }
 
 # Quellen, deren Items eine bereits gefallene Entscheidung beschreiben.
