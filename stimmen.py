@@ -38,6 +38,10 @@ UA = {"User-Agent": "Mozilla/5.0 politik-digest/1.0"}
 _XLSX_FRAKTION = {"BÜ90/GR": "BÜNDNIS 90/DIE GRÜNEN", "CDU/CSU": "CDU/CSU",
                   "SPD": "SPD", "AfD": "AfD", "Die Linke": "Die Linke"}
 
+# Der SSW hat einen Abgeordneten und keine Fraktion - die XLSX fuehrt ihn
+# unter "Fraktionslos". Der Sitzbogen hat fuer ihn einen eigenen Punkt.
+_SSW_ABGEORDNETE = {("Seidler", "Stefan")}
+
 _MONATSNR = {m: i for i, m in enumerate(
     ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August",
      "September", "Oktober", "November", "Dezember"], start=1)}
@@ -78,6 +82,8 @@ def xlsx_ergebnis(inhalt: bytes) -> dict:
     for z in zeilen[1:]:
         roh = str(z[spalte["Fraktion/Gruppe"]] or "")
         name = _XLSX_FRAKTION.get(roh, roh)
+        if (z[spalte["Name"]], z[spalte["Vorname"]]) in _SSW_ABGEORDNETE:
+            name = "SSW"
         stimmen = fraktionen.setdefault(name, {"ja": 0, "nein": 0, "enthalten": 0})
         for feld, schluessel in (("ja", "ja"), ("nein", "nein"),
                                  ("Enthaltung", "enthalten")):
@@ -178,11 +184,13 @@ _UEBRIGE = re.compile(r"übrigen Fraktionen|aller anderen Fraktionen")
 def handzeichen(text: str) -> dict | None:
     """Positionen der Fraktionen aus dem ersten Satz, der sie vollstaendig nennt.
 
-    Nur ein Satz, der JEDE Fraktion des Rosters (ausser SSW) genau einer
+    Nur ein Satz, der JEDE Fraktion des Rosters (ausser SSW und
+    Fraktionslosen, die die Redaktion nie nennt) genau einer
     Seite zuordnet, zaehlt - sonst None. "Aller uebrigen Fraktionen" wird
     aufgeloest, wenn die andere Seite genannt ist.
     """
-    roster = {f["key"] for f in config.BUNDESTAG_SITZE if f["key"] != "SSW"}
+    roster = {f["key"] for f in config.BUNDESTAG_SITZE
+              if f["key"] not in ("SSW", "Fraktionslos")}
     for muster in (_DAFUER, _MIT_STIMMEN):
         for m in muster.finditer(text):
             teile = m.groupdict()

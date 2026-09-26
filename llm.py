@@ -112,6 +112,14 @@ Aufbau:
    sagt nur, dass sich etwas geaendert hat - das tut jede Meldung hier.
    Wenn du keinen ueberraschenden Umstand findest, nenn schlicht die Folge:
    wer ab jetzt was tun muss oder bekommt.
+   Die Schlagzeile handelt IMMER von dem, was jetzt beschlossen wurde, und
+   von seiner Folge. Was ein frueherer, aehnlicher Fall gezeigt hat, gehoert
+   auf die Slide "Was fruehere Faelle zeigen" - nie in Schlagzeile oder
+   Teaserzeile.
+     gut:      "Tankrabatt: Ab Oktober 17 Cent weniger pro Liter"
+     schlecht: "Tankrabatt: Vorheriger Rabatt kam nur zu 80 Prozent an"
+   Die schlechte Zeile ist belegt und trotzdem falsch: sie macht aus der
+   Nachricht des Tages eine Bewertung eines alten Beschlusses.
    Du DARFST hier Unternehmen beim Namen nennen, wenn sie erkennbar zur
    betroffenen Gruppe gehoeren - "Jetzt zahlen Lime, Bolt und Co." statt
    "Jetzt zahlt der Vermieter". Das Gesetz sagt "Vermieter", aber niemand
@@ -564,6 +572,10 @@ Pruefe:
   "bisher"-Wert wirklich so in den Fakten?), auf Fristen und Datumsangaben
   und darauf, ob eine Bedingung strenger oder lockerer wiedergegeben wird,
   als sie belegt ist.
+- Schlagzeile: Handelt sie von dem, was jetzt beschlossen wurde? Stellt sie
+  stattdessen einen frueheren Fall in den Vordergrund ("Vorheriger Rabatt
+  kam nur zu 80 Prozent an"), ist das ein Durchfaller - auch wenn die Zahl
+  belegt ist. Fruehere Faelle gehoeren auf ihre eigene Slide.
 - Schlagzeile und Teaserzeile: Sagt die Teaserzeile etwas ANDERES als die
   Schlagzeile? Beide stehen direkt untereinander auf der ersten Slide, und
   der Platz ist zu knapp, um denselben Satz zweimal zu bringen. Gemeint ist

@@ -390,6 +390,12 @@ WAHLPERIODE = 21
 # und darf hier nicht auftauchen; wer das Roster anfasst, aendert damit jede
 # Abstimmungs-Slide, also bitte gegen die amtliche Sitzverteilung pruefen.
 #
+# Stand 25.09.2026 laut Abstimmungsliste des Bundestages (XLSX der
+# namentlichen Abstimmung zum Tankrabatt): AfD 150, dazu 3 Fraktionslose -
+# Stefan Seidler (SSW) sowie Sieghard Knodel und Jan Wenzel Schmidt (beide
+# frueher AfD). Vorher standen hier 152 AfD-Sitze, der Bogen zeigte damit zwei
+# leere AfD-Punkte zu viel. Fraktionslose sitzen rechts aussen neben der AfD.
+#
 # Die Farben sind die einzige Stelle im Deck, an der Parteifarben erlaubt
 # sind (Design-System §1). Nie fuer Text, Karten oder Flaechen verwenden.
 BUNDESTAG_SITZE = [
@@ -398,12 +404,14 @@ BUNDESTAG_SITZE = [
     {"key": "Gruene",  "name": "Grüne",    "sitze": 85,  "farbe": "#409A3C"},
     {"key": "SPD",     "name": "SPD",      "sitze": 120, "farbe": "#E3000F"},
     {"key": "CDU/CSU", "name": "CDU/CSU",  "sitze": 208, "farbe": "#151B20"},
-    {"key": "AfD",     "name": "AfD",      "sitze": 152, "farbe": "#009EE0"},
+    {"key": "AfD",     "name": "AfD",      "sitze": 150, "farbe": "#009EE0"},
+    {"key": "Fraktionslos", "name": "Fraktionslos", "sitze": 2, "farbe": "#8A9199"},
 ]
 
 # Schreibweisen aus den Plenarprotokollen (siehe abstimmung.FRAKTIONEN) auf die
-# Roster-Schluessel. Fraktionslose stehen bewusst nicht drin: fuer sie weist das
-# Roster keine Sitze aus, sie bekommen also auch keine Punkte im Bogen.
+# Roster-Schluessel. Seit 26.09.2026 haben auch die Fraktionslosen Sitze im
+# Roster; der SSW-Abgeordnete steht in Listen und Protokoll ebenfalls unter
+# "Fraktionslos" und wird in stimmen.py per Name zugeordnet.
 FRAKTION_ALIAS = {
     "CDU/CSU": "CDU/CSU",
     "SPD": "SPD",
@@ -415,6 +423,8 @@ FRAKTION_ALIAS = {
     "Linke": "Linke",
     "Gruene": "Gruene",
     "SSW": "SSW",
+    "Fraktionslos": "Fraktionslos",
+    "Fraktionslose": "Fraktionslos",
 }
 
 # Mindestlaenge des Quelltexts, damit ein Thema ueberhaupt in die (teure)

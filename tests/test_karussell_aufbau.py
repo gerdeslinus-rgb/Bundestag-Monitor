@@ -141,10 +141,16 @@ for fraktion, ja, nein in [("CDU/CSU", 3, 0), ("BÜ90/GR", 0, 2), ("Die Linke", 
         blatt.append([21, 97, 2, fraktion, "X", "Y", None, 1, 0, 0, 0, 0, "", ""])
     for _ in range(nein):
         blatt.append([21, 97, 2, fraktion, "X", "Y", None, 0, 1, 0, 0, 0, "", ""])
+blatt.append([21, 97, 2, "Fraktionslos", "Seidler", "Stefan", None, 1, 0, 0, 0, 0, "", ""])
+blatt.append([21, 97, 2, "Fraktionslos", "Knodel", "Sieghard", None, 0, 1, 0, 0, 0, "", ""])
 puffer = io.BytesIO()
 buch.save(puffer)
 ergebnis = stimmen.xlsx_ergebnis(puffer.getvalue())
-pruefe("Summen", (ergebnis["ja"], ergebnis["nein"], ergebnis["enthalten"]), (4, 3, 0))
+pruefe("Summen", (ergebnis["ja"], ergebnis["nein"], ergebnis["enthalten"]), (5, 4, 0))
+pruefe("SSW per Name, nicht fraktionslos", ergebnis["fraktionen"]["SSW"]["ja"], 1)
+pruefe("uebrige Fraktionslose", ergebnis["fraktionen"]["Fraktionslos"]["nein"], 1)
+import config
+pruefe("Roster = 630 Sitze", sum(f["sitze"] for f in config.BUNDESTAG_SITZE), 630)
 pruefe("Gruene unter Protokollnamen", ergebnis["fraktionen"]["BÜNDNIS 90/DIE GRÜNEN"]["nein"], 2)
 
 # Zuordnung: zwei Abstimmungen am selben Tag stehen im Artikel - der Titel
