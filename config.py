@@ -464,6 +464,13 @@ BILDER_THEMEN = [
     # steckt. Lieber kein Bild als das falsche: ein Spielplatz neben einer
     # Meldung ueber Kinderarmut ist schlimmer als eine rein typografische
     # Karte.
+    # Vor "steuern": der Tankrabatt ist eine Energiesteuersenkung, bekam aber
+    # mangels Thema das Reichstagsfoto (Durchsicht 28.09.2026).
+    {"thema": "kraftstoff",
+     "woerter": ["tankrabatt", "tankstelle", "tanken", "sprit", "kraftstoff",
+                 "benzin", "diesel", "zapfsaeule", "zapfpistole"],
+     "nicht": ["dieselbe", "dieselben", "dieselbst"],
+     "suche": "Tankstelle Zapfsaeule tanken"},
     {"thema": "steuern",
      "woerter": ["steuer", "freibetrag", "pauschale", "abgabe", "soli",
                  "umsatzsteuer", "einkommensteuer"],

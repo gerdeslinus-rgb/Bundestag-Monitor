@@ -277,6 +277,16 @@ Aufbau:
    dann erklaere oben, was sie bedeutet: steht oben "eine neue, unabhaengige
    Behoerde" und unten etwas ueber ihre Unabhaengigkeit, muss oben stehen,
    WOVON sie unabhaengig ist ("unabhaengig vom Ministerium").
+   Bringst du in den "saetze" einen zweiten Begriff ins Spiel (Mehrwertsteuer
+   neben Energiesteuer), sag ausdruecklich, wie er mit dem ersten
+   zusammenhaengt - und wie daraus die Zahl der Schlagzeile wird. Nie "die
+   Steuer", wenn zwei Steuern im Spiel sind. Fehlt der Zusammenhang, liest
+   die Leserin 14,04 Cent auf Slide 3 und 17 Cent auf dem Cover und haelt
+   eines von beiden fuer falsch (Tankrabatt 28.09.2026). Gut:
+     "Der Tankrabatt senkt die Energiesteuer auf Benzin und Diesel
+      befristet um 14,04 Cent pro Liter."
+     "Auf den Preis kommt noch Mehrwertsteuer, die dadurch mitsinkt:
+      zusammen rund 17 Cent pro Liter weniger."
    Die Slide hat feste Masse: was laenger ist, wird gestrichen.
 5. sowhat: Was heisst das fuer eine normale Person? Entweder art "rechnung"
    (mit nachvollziehbaren Schritten an einem Beispielfall) ODER art
