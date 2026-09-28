@@ -154,5 +154,21 @@
  "Arbeitsgemeinschaft Deutscher Waldbesitzerverbände (AGDW) e.V.": {
   "pfad": null,
   "stand": 739885
+ },
+ "Linke": {
+  "datei": "Logo Die Linke (2023).svg",
+  "pfad": "logo-die-linke-2023.svg",
+  "lizenz": "Public domain",
+  "autor": "Die Linke",
+  "seite": "https://commons.wikimedia.org/wiki/File:Logo_Die_Linke_(2023).svg",
+  "stand": 739887
+ },
+ "AfD": {
+  "datei": "Alternative-fuer-Deutschland-Logo-2013.svg",
+  "pfad": "alternative-fuer-deutschland-logo-2013.svg",
+  "lizenz": "Public domain",
+  "autor": "",
+  "seite": "https://commons.wikimedia.org/wiki/File:Alternative-fuer-Deutschland-Logo-2013.svg",
+  "stand": 739887
  }
 }
