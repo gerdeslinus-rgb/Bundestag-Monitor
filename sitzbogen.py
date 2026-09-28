@@ -1,9 +1,14 @@
 """Sitzbogen fuer namentliche Abstimmungen - 630 Punkte, einer je Mandat.
 
 Das Standarddiagramm fuer eine Abstimmung im ganzen Haus (Design-System §4).
-Ein gefuellter Punkt ist ein Ja in der Farbe der eigenen Fraktion, ein hohler
-Punkt derselben Farbe ein Nein oder eine Enthaltung. So sieht man den Dissens
-INNERHALB einer Fraktion, statt nur die Fraktionslinie.
+Jeder Punkt in der Farbe der eigenen Fraktion, in einem von vier Zustaenden:
+gefuellt Ja, Ring Nein, blass Enthaltung, kleiner blasser Punkt nicht
+abgestimmt. So sieht man den Dissens INNERHALB einer Fraktion, statt nur die
+Fraktionslinie.
+
+Bis 28.09.2026 gab es nur zwei Zustaende - Ja und "hohl" fuer alles andere.
+Das zeigte beim Tankrabatt 30 fehlende AfD-Abgeordnete wie Nein-Stimmen und
+alle 85 Gruenen-Punkte hohl, obwohl nur 73 mit Nein gestimmt hatten.
 
 Zwei Dinge, die hier bewusst so und nicht anders geloest sind:
 
@@ -123,14 +128,29 @@ def bogen(ergebnis: dict) -> dict | None:
     punkte = _punkte(sitze_gesamt)
     positionen = ergebnis.get("positionen") or {}
 
-    gezeichnet, legende, gelaufen = [], {}, 0
+    gezeichnet, legende, gelaufen, zustaende = [], {}, 0, set()
     for fraktion in config.BUNDESTAG_SITZE:
-        stimmen = je_fraktion.get(fraktion["key"], {"ja": 0, "nein": 0, "enthalten": 0})
-        ja = min(stimmen["ja"], fraktion["sitze"])
-        for i in range(fraktion["sitze"]):
+        stimmen = dict(je_fraktion.get(fraktion["key"], {"ja": 0, "nein": 0, "enthalten": 0}))
+        sitze = fraktion["sitze"]
+        # Handzeichen: die ganze Fraktion nimmt die Position ein, die die
+        # Redaktion ihr zuschreibt - Einzelstimmen gibt es nicht.
+        position = positionen.get(fraktion["key"])
+        if ergebnis.get("art") == "handzeichen" and position in ("dagegen", "enthalten"):
+            stimmen = {"ja": 0, "nein": sitze if position == "dagegen" else 0,
+                       "enthalten": sitze if position == "enthalten" else 0}
+        # In Sitzfolge: erst Ja, dann Nein, Enthaltung, wer nicht abgestimmt
+        # hat. Gedeckelt auf die Sitzzahl, der Rest fehlt.
+        ja = min(stimmen["ja"], sitze)
+        nein = min(stimmen["nein"], sitze - ja)
+        enthalten = min(stimmen["enthalten"], sitze - ja - nein)
+        folge = (["ja"] * ja + ["nein"] * nein + ["enthalten"] * enthalten
+                 + ["fehlt"] * (sitze - ja - nein - enthalten))
+        for i, stimme in enumerate(folge):
             p = punkte[gelaufen + i]
-            gezeichnet.append({**p, "farbe": fraktion["farbe"], "hohl": i >= ja})
-        gelaufen += fraktion["sitze"]
+            gezeichnet.append({**p, "farbe": fraktion["farbe"], "stimme": stimme,
+                               "hohl": stimme != "ja"})
+            zustaende.add(stimme)
+        gelaufen += sitze
         # Eine Legendenzeile je "legende"-Name: der SSW-Sitz zaehlt zu den
         # Fraktionslosen (config.BUNDESTAG_SITZE).
         name = fraktion.get("legende") or fraktion["name"]
@@ -162,6 +182,8 @@ def bogen(ergebnis: dict) -> dict | None:
         # (stimmen.py, Entscheidung 26.09.2026).
         "art": ergebnis.get("art") or "namentlich",
         "legende": list(legende.values()),
+        # Nur die Zustaende, die im Bogen vorkommen - fuer den Schluessel.
+        "zustaende": [z for z in ("ja", "nein", "enthalten", "fehlt") if z in zustaende],
         # Die Legende nach Mehrheit: wer dafuer war, wer dagegen, wer sich
         # enthalten hat, und wer sich die Waage hielt. Leere Gruppen fallen weg.
         "gruppen": [{"mehrheit": m, "fraktionen": [z for z in legende.values()

@@ -506,8 +506,9 @@
   .on-ink .lager-box.dagegen .lager-kopf { color: var(--schlecht-hell); }
   .lager-zeile { display: flex; align-items: center; gap: 12px; }
   .lager-zeile .lager-zahl { margin-left: auto; white-space: nowrap; font-weight: 600; }
-  .bogen-fuss { margin-top: 20px; display: flex; align-items: center; gap: 12px;
-                font-size: var(--small); opacity: 0.75; }
+  .bogen-fuss { margin-top: 20px; display: flex; flex-wrap: wrap; align-items: center;
+                column-gap: 28px; row-gap: 8px; font-size: var(--small); opacity: 0.75; }
+  .bogen-fuss .zustand { display: flex; align-items: center; gap: 10px; }
   .swatch { width: 20px; height: 20px; border-radius: 100px; flex: none; }
   .swatch.hohl { background: none; border: 3px solid currentColor; }
 
@@ -802,9 +803,13 @@
         <div class="bogen">
           <svg viewBox="{{ bogen.viewbox }}" role="img">
             {% for p in bogen.punkte %}
-              {% if p.hohl %}
+              {% if p.stimme == 'nein' %}
                 <circle cx="{{ p.x }}" cy="{{ p.y }}" r="{{ bogen.dot - 1.2 }}"
                         fill="none" stroke="{{ p.farbe }}" stroke-width="2.4"/>
+              {% elif p.stimme == 'enthalten' %}
+                <circle cx="{{ p.x }}" cy="{{ p.y }}" r="{{ bogen.dot }}" fill="{{ p.farbe }}" fill-opacity="0.35"/>
+              {% elif p.stimme == 'fehlt' %}
+                <circle cx="{{ p.x }}" cy="{{ p.y }}" r="{{ bogen.dot * 0.45 }}" fill="{{ p.farbe }}" fill-opacity="0.35"/>
               {% else %}
                 <circle cx="{{ p.x }}" cy="{{ p.y }}" r="{{ bogen.dot }}" fill="{{ p.farbe }}"/>
               {% endif %}
@@ -831,7 +836,7 @@
               <div class="lager-kopf">{{ {'dafür': 'Dafür', 'dagegen': 'Dagegen', 'enthalten': 'Enthalten', 'geteilt': 'Geteilt'}[g.mehrheit] }}</div>
               {% for f in g.fraktionen %}
                 <div class="lager-zeile">
-                  <span class="swatch{% if bogen.art == 'handzeichen' and f.position != 'dafür' %} hohl{% endif %}" style="{% if bogen.art == 'handzeichen' and f.position != 'dafür' %}color: {{ f.farbe }}{% else %}background: {{ f.farbe }}{% endif %}"></span>
+                  <span class="swatch" style="background: {{ f.farbe }}"></span>
                   {% for l in f.logos if l %}<img class="logo klein" src="{{ l }}" alt="">{% endfor %}
                   <span>{{ f.name }}</span>
                   {% if bogen.art != 'handzeichen' %}
@@ -842,8 +847,21 @@
             </div>
           {% endfor %}
         </div>
-        <div class="bogen-fuss"><span class="swatch hohl"></span>
-          <span>{% if bogen.art == 'handzeichen' %}Position der Fraktion, keine Einzelstimmen{% else %}hohler Punkt: dagegen, enthalten oder nicht abgestimmt{% endif %}</span></div>
+        {# Schluessel der Punktzustaende, nur was im Bogen vorkommt. Gleiche
+           Formen wie im SVG, neutral in der Textfarbe. #}
+        <div class="bogen-fuss">
+          {% set namen = {'ja': 'Ja', 'nein': 'Nein', 'enthalten': 'Enthalten', 'fehlt': 'nicht abgestimmt'} if bogen.art != 'handzeichen'
+                         else {'ja': 'dafür', 'nein': 'dagegen', 'enthalten': 'enthalten', 'fehlt': 'ohne Position'} %}
+          {% for z in bogen.zustaende %}
+            <span class="zustand"><svg width="20" height="20" viewBox="0 0 20 20">
+              {% if z == 'nein' %}<circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="2.6"/>
+              {% elif z == 'enthalten' %}<circle cx="10" cy="10" r="9" fill="currentColor" fill-opacity="0.35"/>
+              {% elif z == 'fehlt' %}<circle cx="10" cy="10" r="4" fill="currentColor" fill-opacity="0.35"/>
+              {% else %}<circle cx="10" cy="10" r="9" fill="currentColor"/>{% endif %}
+            </svg>{{ namen[z] }}</span>
+          {% endfor %}
+          {% if bogen.art == 'handzeichen' %}<span>Position der Fraktion, keine Einzelstimmen</span>{% endif %}
+        </div>
       {% else %}
         <div class="bars{% if chart.divergent %} divergent{% endif %}">
           {% for bar in chart.balken %}

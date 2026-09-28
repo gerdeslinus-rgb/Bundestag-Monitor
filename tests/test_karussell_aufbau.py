@@ -16,6 +16,7 @@ Durchsicht 28.09.2026:
 - Keine Frage-Architektur (1b), wenn die Teaserzeile selbst fragt.
 """
 import io
+from collections import Counter
 import os
 import sys
 
@@ -223,6 +224,16 @@ pruefe("Gruppen", {g["mehrheit"]: [z["name"] for z in g["fraktionen"]] for g in 
        {"dafür": ["SPD", "CDU/CSU", "AfD"], "dagegen": ["Linke", "Grüne"],
         "geteilt": ["Fraktionslos"]})
 pruefe("630 Punkte", len(b["punkte"]), 630)
+# Vier Zustaende statt "hohl fuer alles": fehlende Abgeordnete sind kein Nein.
+zaehl = {}
+for p in b["punkte"]:
+    zaehl.setdefault(p["farbe"], Counter())[p["stimme"]] += 1
+farbe = {f["key"]: f["farbe"] for f in config.BUNDESTAG_SITZE}
+pruefe("Gruene: 73 Nein, 12 nicht abgestimmt", dict(zaehl[farbe["Gruene"]]),
+       {"nein": 73, "fehlt": 12})
+pruefe("AfD: 120 Ja, 30 fehlen, kein Nein", dict(zaehl[farbe["AfD"]]),
+       {"ja": 120, "fehlt": 30})
+pruefe("Zustaende im Schluessel", b["zustaende"], ["ja", "nein", "fehlt"])
 
 print("\nFrage als Teaserzeile:")
 pruefe("keine 1b bei Frage-Teaser",
