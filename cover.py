@@ -169,7 +169,12 @@ def _frage(slides: dict) -> str:
 
     Sie muss eine Frage sein und vom Karussell beantwortet werden - das
     Zweite kann hier niemand pruefen, das Erste schon.
+
+    Ist die Teaserzeile selbst eine Frage ("Aber wie viel kommt davon bei
+    euch an?"), gibt es keine: 1b setzte sonst zwei Fragen untereinander.
     """
+    if str(slides.get("hook") or "").strip().endswith("?"):
+        return ""
     frage = str(slides.get("cover_frage") or "").strip()
     return frage if frage.endswith("?") and len(frage) > 5 else ""
 

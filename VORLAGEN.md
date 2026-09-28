@@ -157,8 +157,13 @@ die naechste Person dran (Spahn: kein Betrag, 8 -> 7 - uebersprungen).
 | Slide | Inhalt | Wer |
 |---|---|---|
 | 1 Cover 1g | Portraet (freigestellt, in Farbe, auf Farbfeld rechts) / "{Name} neben dem Mandat" / Haken: "{Betrag} Euro von {Organisation}: der hoechste Einzelbetrag, den {Nachname} gemeldet hat." bzw. die Aenderung | Daten, Portraet aus data/portraets |
-| 2 Chart | Mit mind. 2 Betraegen: "Hoechste gemeldete Betraege", bis 4, je Meldung mit Jahr und Logo, nie addiert. Mit einem Betrag: dieser gegen den Durchschnitt aller Abgeordneten. Ohne Betrag: verschiedene Taetigkeiten 2021-2025 gegen seit 2025 | Daten |
-| 3 "Im Vergleich zum Bundestag" | Tabelle "Ø Bundestag" gegen {Nachname}: Meldungen, hoechster Einzelbetrag, alle Betraege zusammen (Betragszeilen nur, wenn die Person Betraege gemeldet hat, die Summe erst ab zwei Betraegen; nie der Anteil der Meldungen mit Betrag). Pills: Platz beim hoechsten Einzelbetrag ("11 von 630"), ggf. Aenderung zur vorigen Wahlperiode. Hinweis: Ø-Definition + Fest | Daten (`sources.neben_statistik`, alle 630 gezaehlt) |
+| 2 "{Nachname} im Vergleich zum Bundestag" | Balken: die hoechsten gemeldeten Betraege (bis 3, je Meldung mit Jahr und Logo, nie addiert) plus "Ø je Abgeordnetem" (hoechster Betrag je Sitz, alle 630). Darunter Pills: Platz beim hoechsten Betrag ("5 von 630"), dann "Alle Betraege im Jahr" (ab zwei Betraegen) oder "Meldungen (Ø Bundestag 7,3)", ggf. Aenderung zur vorigen Wahlperiode. Ohne Betrag: verschiedene Taetigkeiten 2021-2025 gegen seit 2025 | Daten (`sources.neben_statistik`) |
+| 3 "Was macht ein {Funktion}?" | Begriffskarte fuer die Taetigkeit mit dem hoechsten Betrag, Logo der Organisation im Badge: zwei Saetze, was man in der Funktion tut; fett: "{Funktion} bei {Organisation}: {Betrag} Euro brutto im Monat"; darunter "Aus der Meldung": Zeitraum ("Einkommen ab 01.01.2025, Taetigkeit bis 26.07.2026") + Fest. Findet sich nichts oder faellt die Pruefung durch: Pfeilliste "Die Taetigkeit" nur aus der Meldung | Modell (`llm.taetigkeit_erklaerung`, aus Wikipedia-Einleitung zu Funktion und Organisation, jeder Satz belegt) + Daten |
+
+Zusammengelegt am 28.09.2026: Slide 2 (Balken) und die fruehere Slide 3
+(Tabelle "Im Vergleich zum Bundestag") sind jetzt eine Slide. Die Meldung
+selbst sagt nicht, was der Job ist - abgeordnetenwatch fuehrt nur Titel,
+Organisation, Kategorie, Ort und Themen; deshalb Wikipedia.
 
 Fest: "Abgeordnete muessen Taetigkeiten neben dem Mandat und Einkuenfte daraus
 beim Bundestag melden. Eine Meldung ist kein Vorwurf."

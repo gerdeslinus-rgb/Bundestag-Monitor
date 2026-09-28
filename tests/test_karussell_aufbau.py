@@ -7,6 +7,13 @@ Kein Netz, kein Modell. Jeder Block steht fuer einen Punkt der Durchsicht:
 - Sitzbogen am Sitzungstag: namentlich aus der XLSX, sonst Handzeichen.
 - "Was fruehere Faelle zeigen" nur mit gepruefter Fundstelle.
 - Tausendertrenner als Leerzeichen ("682 000", Wohngeld).
+
+Durchsicht 28.09.2026:
+
+- Anteilsbalken auf "Was fruehere Faelle zeigen": nur belegte Werte, Rest
+  vom Code gerechnet.
+- Sitzbogen-Legende nach Mehrheit, SSW bei den Fraktionslosen.
+- Keine Frage-Architektur (1b), wenn die Teaserzeile selbst fragt.
 """
 import io
 import os
@@ -17,6 +24,7 @@ sys.path.insert(0, WURZEL)
 os.chdir(WURZEL)
 sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 os.environ.setdefault("ANTHROPIC_API_KEY", "test")
+import cover
 import llm
 import render
 import research
@@ -186,6 +194,43 @@ try:
     pruefe("Zahl fehlt im Text: keine Zuordnung", stimmen.namentlich(item), None)
 finally:
     stimmen._liste, stimmen.requests.get, stimmen.xlsx_ergebnis = _liste, _get, _ergebnis
+
+print("\nAnteilsbalken (Durchsicht 28.09.2026):")
+faelle = [{"befund": "bei Diesel zu 82,6 Prozent und bei Super E5 zu 77,8 Prozent "
+                     "an die Verbraucher weitergegeben", "wert": 80.0}]
+v = {"anteile": {"an": "Kam bei euch an", "rest": "Nicht weitergegeben",
+                 "werte": [{"label": "Diesel", "wert": 82.6}, {"label": "Super E5", "wert": "77,8"}]}}
+llm._anteile_pruefen(v, faelle)
+pruefe("Rest vom Code", [z["rest"] for z in v["anteile"]["werte"]], [17.4, 22.2])
+v = {"anteile": {"an": "Kam an", "rest": "Nicht weitergegeben",
+                 "werte": [{"label": "Diesel", "wert": 85}]}}
+llm._anteile_pruefen(v, faelle)
+pruefe("unbelegter Wert: Balken gestrichen", "anteile" in v, False)
+v = {"anteile": {"an": "Kam an", "rest": "", "werte": [{"label": "Diesel", "wert": 82.6}]}}
+llm._anteile_pruefen(v, faelle)
+pruefe("ohne Rest-Etikett: Balken gestrichen", "anteile" in v, False)
+
+print("\nSitzbogen-Legende nach Mehrheit:")
+b = sitzbogen.bogen({"gesamt": 562, "ja": 434, "nein": 128, "angenommen": True,
+                     "fraktionen": {"CDU/CSU": {"ja": 200}, "AfD": {"ja": 120},
+                                    "SPD": {"ja": 112}, "BÜNDNIS 90/DIE GRÜNEN": {"nein": 73},
+                                    "Die Linke": {"ja": 1, "nein": 54},
+                                    "Fraktionslos": {"ja": 1}, "SSW": {"nein": 1}}})
+pruefe("eine Zeile Fraktionslos, mit SSW",
+       [(z["name"], z["sitze"]) for z in b["legende"] if z["name"] in ("SSW", "Fraktionslos")],
+       [("Fraktionslos", 3)])
+pruefe("Gruppen", {g["mehrheit"]: [z["name"] for z in g["fraktionen"]] for g in b["gruppen"]},
+       {"dafür": ["SPD", "CDU/CSU", "AfD"], "dagegen": ["Linke", "Grüne"],
+        "geteilt": ["Fraktionslos"]})
+pruefe("630 Punkte", len(b["punkte"]), 630)
+
+print("\nFrage als Teaserzeile:")
+pruefe("keine 1b bei Frage-Teaser",
+       cover._frage({"cover_frage": "Was ist der Tankrabatt?",
+                     "hook": "Aber wie viel kommt davon bei euch an?"}), "")
+pruefe("1b sonst weiter moeglich",
+       cover._frage({"cover_frage": "Was ist der Tankrabatt?", "hook": "Ab Oktober"}),
+       "Was ist der Tankrabatt?")
 
 print("\nZweiter Versuch nach Aufbaufehler:")
 sources.ensure_volltext = lambda item: item

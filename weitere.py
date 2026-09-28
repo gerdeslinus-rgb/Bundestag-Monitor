@@ -177,6 +177,10 @@ def _karussell(item: dict, titel: str, hook: str, chart: dict, context: list,
     gegen sich selbst."""
     if seiten:
         context = _seiten_texte(seiten)
+    # Pills unter dem Chart sind Aussagen wie jede andere: in den Context,
+    # damit Faktencheck und Caption sie sehen (die lesen nur `context`).
+    context = list(context) + [f"{p['label']}: {p['wert']}."
+                               for p in chart.get("pills", [])]
     slides = {
         "titel": titel,
         "context_titel": context_titel,
@@ -1112,6 +1116,71 @@ def _meldung_satz(e: dict) -> str:
     return _satz(f"Meldung: {_taetigkeit(e)}{org}{f' ({art})' if art else ''}{betrag}")
 
 
+def _dativ(org: str) -> str:
+    """"von CDU" fehlt der Artikel: Parteien im Dativ ("von der CDU")."""
+    if org in _PARTEI_AKK:
+        return _PARTEI_AKK[org].replace("die ", "der ", 1).replace(
+            "das ", "dem ", 1).replace("den ", "dem ", 1)
+    return org
+
+
+# Laenger passt "Was macht ein ...?" nicht in zwei Headline-Zeilen.
+FUNKTION_TITEL_MAX = 24
+
+
+def _job_seite(e: dict, fest: str) -> tuple:
+    """Slide 3 der Nebentaetigkeiten: was ist das fuer ein Job?
+
+    Liefert (Slide, Quelltext, Modellsaetze). Die Meldung nennt nur Titel,
+    Organisation, Kategorie und Zeitraum - was man in der Funktion tut,
+    steht nicht darin. Das kommt aus Wikipedia (Funktion und Organisation),
+    zwei Saetze vom Modell, jeder belegt. Findet sich nichts oder faellt die
+    Pruefung durch, bleiben die Angaben der Meldung als Pfeilliste.
+    """
+    funktion = re.sub(r"\s*\([^)]*\)", "", e.get("label", "")).split(",")[0].strip()
+    org_lang = (e.get("sidejob_organization") or {}).get("label", "")
+    org = _org(e)
+    kategorie = config.NEBEN_KATEGORIEN.get(e.get("category"), ("",))[0]
+    zeitraum = sources.neben_zeitraum(e)
+    brutto = " brutto" if "brutto" in (e.get("additional_information") or "").lower() else ""
+
+    fett = (f"{funktion} bei {_dativ(_kurzname(org or org_lang, 40))}: "
+            f"{_zahl(float(e['income']))} Euro{brutto}"
+            f"{' ' + zeitraum if zeitraum else ''}.")
+    angaben = [x for x in (e.get("job_title_extra") or "",) if x]
+    ende = re.search(r"\((ab|bis|seit) ([^)]*)\)", e.get("label", ""))
+    if ende:
+        angaben.append(f"Tätigkeit {ende.group(1)} {ende.group(2).strip()}")
+    # Steht unter "Aus der Meldung" - ohne eigenes "Laut Meldung" davor.
+    meldung = (f"{', '.join(angaben)}." if angaben
+               else f"Gemeldet als: {kategorie}." if kategorie else "")
+
+    wiki_funktion = sources.wikipedia_funktion(funktion) if funktion else ""
+    wiki_org = sources.wikipedia_kurz(org_lang) if org_lang else ""
+    quelle = " ".join(x for x in (
+        f"Meldung beim Bundestag: {funktion} bei {org_lang}"
+        f"{f', Kategorie {kategorie}' if kategorie else ''}.",
+        f"Wikipedia zur Funktion {funktion}: {_ohne_umbruch(wiki_funktion)[:1500]}"
+        if wiki_funktion else "",
+        f"Wikipedia zu {org_lang}: {wiki_org[:800]}" if wiki_org else "") if x)
+    saetze = (llm.taetigkeit_erklaerung(funktion, org_lang, quelle)
+              if wiki_funktion or wiki_org else [])
+
+    if saetze:
+        artikel = "eine" if funktion.endswith(("in", "e")) else "ein"
+        titel = (f"Was macht {artikel} {funktion}?"
+                 if len(funktion) <= FUNKTION_TITEL_MAX else "Was steckt hinter dem Job?")
+        seite = {"kind": "begriff", "titel": titel, "logo": org or org_lang,
+                 "nachtitel": "Aus der Meldung",
+                 "begriff": {"saetze": saetze, "beispiel": fett,
+                             "warum": [x for x in (meldung, fest) if x]}}
+        return seite, quelle, saetze
+    seite = {"kind": "context", "titel": "Die Tätigkeit",
+             "saetze": [x for x in (fett, f"Laut Meldung: {meldung}" if angaben else meldung,
+                                    fest) if x]}
+    return seite, "", []
+
+
 def _neben_karussell(name: str, info: dict) -> dict | None:
     meldungen = sources.aow("sidejobs", mandates=info["mandat"], range_end=200) or []
     if not meldungen:
@@ -1152,12 +1221,19 @@ def _neben_karussell(name: str, info: dict) -> dict | None:
         "summe": sum(sources.neben_jahreswert(e) for e in mit_betrag)}
     hoechster = eigene["max"]
 
+    # Slide 2: die gemeldeten Betraege gegen den Bundestag, mit dem Platz
+    # darunter. Vorher waren das zwei Slides (Balken, dann Tabelle "Im
+    # Vergleich zum Bundestag") - zusammengelegt nach der Durchsicht vom
+    # 28.09.2026, damit Slide 3 erklaeren kann, was der Job eigentlich ist.
+    schnitt = sum(z["max"] for z in je.values()) / alle if je else 0
+    schnitt_hinweis = (f"Ø: höchster gemeldeter Betrag je Abgeordnetem, alle "
+                       f"{alle} gezählt, Wahlperiode seit 2025. " if je else "")
     if len(mit_betrag) >= config.CHART_MIN_BARS:
         # Der Zeitraum steht in job_title_extra ("Einkommen im Jahr 2025").
         # Ohne ihn stuende dieselbe Organisation zweimal da, als waere es ein
         # Doppeleintrag - tatsaechlich sind es zwei Jahre.
         balken, gezaehlt = [], Counter()
-        for e in mit_betrag[:config.CHART_MAX_BARS]:
+        for e in mit_betrag[:config.CHART_MAX_BARS - (1 if je else 0)]:
             jahr = _jahr(e)
             label = _kurzname(_org(e) or _taetigkeit(e), 22 if jahr else 28)
             label = f"{label} {jahr}".strip()
@@ -1166,15 +1242,18 @@ def _neben_karussell(name: str, info: dict) -> dict | None:
                 label = f"{label} ({gezaehlt[label]})"
             balken.append({"label": label, "wert": round(sources.neben_jahreswert(e)),
                            "anzeige": _anzeige(e), "logo": _org(e)})
-        chart = {"titel": "Höchste gemeldete Beträge", "einheit": "Euro",
+        if je:
+            balken.append({"label": "Ø je Abgeordnetem", "wert": round(schnitt)})
+        chart = {"titel": f"{nachname} im Vergleich zum Bundestag" if je
+                 else "Höchste gemeldete Beträge", "einheit": "Euro",
                  "balken": balken, "hervorheben": 0,
                  "hinweis": ("Balkenlänge aufs Jahr gerechnet (Monatsbeträge × 12). "
                              if monatlich else "")
-                 + "Je Meldung, nicht zusammengerechnet"}
+                 + "Je Meldung, nicht zusammengerechnet. " + schnitt_hinweis}
     elif mit_betrag:
         e = mit_betrag[0]
-        schnitt = sum(z["max"] for z in je.values()) / alle if je else 0
-        chart = {"titel": "Der gemeldete Betrag im Vergleich", "einheit": "Euro",
+        chart = {"titel": f"{nachname} im Vergleich zum Bundestag",
+                 "einheit": "Euro",
                  "balken": [{"label": _kurzname(_org(e) or _taetigkeit(e), 28),
                              "wert": round(sources.neben_jahreswert(e)),
                              # Monatsbetrag als Jahreswert, sonst wie gemeldet
@@ -1185,8 +1264,7 @@ def _neben_karussell(name: str, info: dict) -> dict | None:
                              "logo": _org(e)},
                             {"label": "Ø je Abgeordnetem", "wert": round(schnitt)}],
                  "hervorheben": 0,
-                 "hinweis": jahr_hinweis + "Höchster gemeldeter Betrag je "
-                            f"Abgeordnetem, alle {alle} gezählt"}
+                 "hinweis": jahr_hinweis + schnitt_hinweis}
     else:
         chart = {"titel": "Verschiedene gemeldete Tätigkeiten", "einheit": "",
                  "balken": [{"label": "Wahlperiode 2021 bis 2025", "wert": vorher_n},
@@ -1194,65 +1272,49 @@ def _neben_karussell(name: str, info: dict) -> dict | None:
                  "hervorheben": 1,
                  "hinweis": "Tätigkeiten und Organisationen, ohne Wiederholungen"}
 
+    # Pills unter den Balken: Platz, dann Summe oder Zahl der Meldungen, dann
+    # die Aenderung zur vorigen Wahlperiode. Ø ueber alle Sitze, auch wer
+    # nichts gemeldet hat. Nie der Anteil der Meldungen mit Betrag
+    # (Abstimmung 25.09.2026).
+    pills = []
+    if je and hoechster:
+        platz = 1 + sum(1 for z in je.values() if z["max"] > hoechster)
+        pills.append({"label": "Platz beim höchsten Betrag", "wert": f"{platz} von {alle}"})
+    if je and eigene["betrag"] > 1:
+        summe = eigene.get("summe") or sum(sources.neben_jahreswert(e) for e in mit_betrag)
+        pills.append({"label": "Alle Beträge im Jahr", "wert": f"{_zahl(summe)} €"})
+    elif je:
+        pills.append({"label": f"Meldungen (Ø Bundestag "
+                               f"{_komma(sum(z['n'] for z in je.values()) / alle)})",
+                      "wert": str(eigene["n"])})
+    if aenderung and mit_betrag:
+        pills.append({"label": "Tätigkeiten 2021 bis 2025, seit 2025",
+                      "wert": f"{vorher_n} → {jetzt_n}"})
+    chart["pills"] = pills
+
+    # Slide 3: was ist das fuer ein Job? Die Meldung selbst sagt es nicht -
+    # abgeordnetenwatch fuehrt nur Titel, Organisation, Kategorie und Ort.
+    # Zwei Saetze schreibt deshalb ein Modell aus Wikipedia, belegt wie beim
+    # Spenderportraet; darunter die Angaben der Meldung.
+    fest = ("Abgeordnete müssen Tätigkeiten neben dem Mandat und Einkünfte daraus "
+            "beim Bundestag melden. Eine Meldung ist kein Vorwurf.")
+    job_quelle, job_saetze = "", []
+    if mit_betrag:
+        seite3, job_quelle, job_saetze = _job_seite(mit_betrag[0], fest)
+    else:
+        seite3 = {"kind": "context", "titel": "Was dahintersteckt",
+                  "saetze": [f"Insgesamt {len(meldungen)} Meldungen in dieser "
+                             f"Wahlperiode, keine davon mit Betrag.", fest]}
+
     if mit_betrag:
         e = mit_betrag[0]
-        quelle = _kurzname(_org(e) or _taetigkeit(e), 40)
-        # "von CDU" fehlt der Artikel: Parteien im Dativ ("von der CDU").
-        if quelle in _PARTEI_AKK:
-            quelle = _PARTEI_AKK[quelle].replace("die ", "der ", 1).replace(
-                "das ", "dem ", 1).replace("den ", "dem ", 1)
+        quelle = _dativ(_kurzname(_org(e) or _taetigkeit(e), 40))
         zeitraum = sources.neben_zeitraum(e)
         hook = (f"{_zahl(float(e['income']))} Euro{' ' + zeitraum if zeitraum else ''} "
                 f"von {quelle}: der höchste Betrag, den {nachname} gemeldet hat.")
     else:
         hook = (f"In der vorigen Wahlperiode {vorher_n} verschiedene Tätigkeiten, "
                 f"seit 2025 bisher {jetzt_n}.")
-
-    # Slide 3: die Person gegen den Durchschnitt aller Abgeordneten.
-    fest = ("Abgeordnete müssen Tätigkeiten neben dem Mandat und Einkünfte daraus "
-            "beim Bundestag melden. Eine Meldung ist kein Vorwurf.")
-    if je:
-        zeilen = [
-            {"label": "Meldungen",
-             "bisher": _komma(sum(z["n"] for z in je.values()) / alle),
-             "neu": str(eigene["n"])},
-        ]
-        # Betraege gegen den Durchschnitt, nicht der Anteil der Meldungen
-        # mit Betrag (Abstimmung 25.09.2026). Ø ueber alle Sitze, auch wer
-        # nichts gemeldet hat - wie in der Zeile "Meldungen".
-        if hoechster:
-            summe = eigene.get("summe") or sum(sources.neben_jahreswert(e)
-                                               for e in mit_betrag)
-            zeilen += [
-                {"label": "Höchster Betrag im Jahr",
-                 "bisher": f"{_zahl(sum(z['max'] for z in je.values()) / alle)} €",
-                 "neu": f"{_zahl(hoechster)} €"},
-            ]
-            # Bei nur einem Betrag ist die Summe derselbe Wert - zweimal
-            # "11.227 €" untereinander sah wie ein Fehler aus (Linnemann).
-            if eigene["betrag"] > 1:
-                zeilen.append(
-                    {"label": "Alle Beträge zusammen",
-                     "bisher": f"{_zahl(sum(z.get('summe', 0) for z in je.values()) / alle)} €",
-                     "neu": f"{_zahl(summe)} €"})
-        pills = []
-        if hoechster:
-            platz = 1 + sum(1 for z in je.values() if z["max"] > hoechster)
-            pills.append({"label": "Platz beim höchsten Betrag",
-                          "wert": f"{platz} von {alle}"})
-        if aenderung and mit_betrag:
-            pills.append({"label": "Tätigkeiten 2021 bis 2025, seit 2025",
-                          "wert": f"{vorher_n} → {jetzt_n}"})
-        seite3 = {"kind": "vergleich", "titel": "Im Vergleich zum Bundestag",
-                  "kopf_alt": "Ø Bundestag", "kopf_neu": nachname,
-                  "zeilen": zeilen, "pills": pills,
-                  "hinweis": f"Ø: Durchschnitt je Abgeordnetem, alle {alle} gezählt, "
-                             f"Wahlperiode seit 2025. {jahr_hinweis}{fest}"}
-    else:
-        seite3 = {"kind": "context", "titel": "Was dahintersteckt",
-                  "saetze": [f"Insgesamt {len(meldungen)} Meldungen in dieser "
-                             f"Wahlperiode, {len(mit_betrag) or 'keine'} davon "
-                             f"mit Betrag.", fest]}
 
     saetze = [f"{name} hat in der Wahlperiode 2025 bis 2029 {len(meldungen)} "
               f"Tätigkeiten und Einkünfte neben dem Mandat gemeldet, "
@@ -1265,6 +1327,9 @@ def _neben_karussell(name: str, info: dict) -> dict | None:
                       f"{statistik['meldungen']} Meldungen erfasst, bei {alle} "
                       f"Abgeordneten.")
     saetze += [_meldung_satz(e) for e in meldungen]
+    if job_quelle:
+        # Gegen diese Angaben prueft der Faktencheck "Was macht ein ...?".
+        saetze.append(f"Angaben zur Tätigkeit: {job_quelle}")
     item = _item(sources._hash("neben" + name + date.today().isoformat()),
                  f"Nebentätigkeiten: {name}",
                  # Kurz: die Quelle steht im Fuss neben dem Seitenzaehler.
@@ -1280,6 +1345,7 @@ def _neben_karussell(name: str, info: dict) -> dict | None:
         context=[],
         seiten=[seite3],
         portraet=portraet.portraet(name),
+        modelltexte=tuple(job_saetze),
     )
 
 

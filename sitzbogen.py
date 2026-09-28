@@ -108,28 +108,42 @@ def bogen(ergebnis: dict) -> dict | None:
     if not ergebnis or not ergebnis.get("fraktionen"):
         return None
 
-    # Protokollschreibweise auf die Roster-Schluessel bringen. Fraktionslose
-    # haben im Roster keine Sitze und werden deshalb nicht gezeichnet.
-    ja_je_fraktion = {}
+    # Protokollschreibweise auf die Roster-Schluessel bringen. Was keinen
+    # Schluessel hat, wird nicht gezeichnet.
+    je_fraktion = {}
     for name, stimmen in ergebnis["fraktionen"].items():
         key = config.FRAKTION_ALIAS.get(name.strip())
         if key:
-            ja_je_fraktion[key] = ja_je_fraktion.get(key, 0) + int(stimmen.get("ja", 0))
+            summe = je_fraktion.setdefault(key, {"ja": 0, "nein": 0, "enthalten": 0})
+            for feld in summe:
+                summe[feld] += int(stimmen.get(feld, 0))
 
     sitze_gesamt = sum(f["sitze"] for f in config.BUNDESTAG_SITZE)
     g = _geometrie()
     punkte = _punkte(sitze_gesamt)
+    positionen = ergebnis.get("positionen") or {}
 
-    gezeichnet, legende, gelaufen = [], [], 0
+    gezeichnet, legende, gelaufen = [], {}, 0
     for fraktion in config.BUNDESTAG_SITZE:
-        ja = min(ja_je_fraktion.get(fraktion["key"], 0), fraktion["sitze"])
+        stimmen = je_fraktion.get(fraktion["key"], {"ja": 0, "nein": 0, "enthalten": 0})
+        ja = min(stimmen["ja"], fraktion["sitze"])
         for i in range(fraktion["sitze"]):
             p = punkte[gelaufen + i]
             gezeichnet.append({**p, "farbe": fraktion["farbe"], "hohl": i >= ja})
         gelaufen += fraktion["sitze"]
-        legende.append({"name": fraktion["name"], "farbe": fraktion["farbe"],
-                        "ja": ja, "sitze": fraktion["sitze"],
-                        "position": (ergebnis.get("positionen") or {}).get(fraktion["key"])})
+        # Eine Legendenzeile je "legende"-Name: der SSW-Sitz zaehlt zu den
+        # Fraktionslosen (config.BUNDESTAG_SITZE).
+        name = fraktion.get("legende") or fraktion["name"]
+        zeile = legende.setdefault(name, {
+            "name": name, "farbe": fraktion["farbe"], "ja": 0, "nein": 0,
+            "enthalten": 0, "sitze": 0, "position": positionen.get(fraktion["key"])})
+        zeile["ja"] += ja
+        zeile["nein"] += stimmen["nein"]
+        zeile["enthalten"] += stimmen["enthalten"]
+        zeile["sitze"] += fraktion["sitze"]
+        zeile["position"] = zeile["position"] or positionen.get(fraktion["key"])
+    for zeile in legende.values():
+        zeile["mehrheit"] = _mehrheit(zeile)
 
     gesamt = int(ergebnis.get("gesamt") or 0)
     return {
@@ -147,8 +161,34 @@ def bogen(ergebnis: dict) -> dict | None:
         # eine Position, keine Stimmenzahl. Der Bogen zeigt dann keine Zahl
         # (stimmen.py, Entscheidung 26.09.2026).
         "art": ergebnis.get("art") or "namentlich",
-        "legende": legende,
+        "legende": list(legende.values()),
+        # Die Legende nach Mehrheit: wer dafuer war, wer dagegen, wer sich
+        # enthalten hat, und wer sich die Waage hielt. Leere Gruppen fallen weg.
+        "gruppen": [{"mehrheit": m, "fraktionen": [z for z in legende.values()
+                                                    if z["mehrheit"] == m]}
+                    for m in ("dafür", "dagegen", "enthalten", "geteilt")
+                    if any(z["mehrheit"] == m for z in legende.values())],
     }
+
+
+def _mehrheit(zeile: dict) -> str | None:
+    """Wofuer die Mehrheit der Fraktion war: "dafür", "dagegen", "enthalten".
+
+    Bei Handzeichen die Position aus dem Satz der Redaktion. Namentlich die
+    meisten abgegebenen Stimmen; wer nicht abgestimmt hat, zaehlt nicht mit.
+    Gleichstand: "geteilt" (die Fraktionslosen beim Tankrabatt, 1 zu 1) -
+    lieber eine eigene Gruppe als eine falsche. Keine Stimme: None, die
+    Zeile faellt aus der Legende.
+    """
+    if zeile.get("position"):
+        return zeile["position"]
+    zahlen = {"dafür": zeile["ja"], "dagegen": zeile["nein"],
+              "enthalten": zeile["enthalten"]}
+    oben = max(zahlen.values())
+    sieger = [k for k, v in zahlen.items() if v == oben]
+    if not oben:
+        return None
+    return sieger[0] if len(sieger) == 1 else "geteilt"
 
 
 def pruefen() -> dict:

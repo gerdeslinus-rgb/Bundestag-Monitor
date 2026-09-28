@@ -1046,6 +1046,35 @@ def wikipedia_kurz(name: str) -> str:
     return ""
 
 
+def wikipedia_funktion(funktion: str) -> str:
+    """Einleitung des deutschen Wikipedia-Artikels zu einer Funktion
+    ("Generalsekretär", "Mitglied des Aufsichtsrates"), oder "".
+
+    Anders als wikipedia_kurz: die ganze Einleitung, nicht nur der erste
+    Absatz - bei "Generalsekretär" steht erst im zweiten, was die Funktion
+    tut ("Leiter der Verwaltung ... zustaendig fuer das Tagesgeschaeft").
+    Und der Titel darf gebeugt im Namen stehen ("Aufsichtsrat" in
+    "Mitglied des Aufsichtsrates"): jedes Titelwort muss Anfang eines
+    Wortes der Funktion sein.
+    """
+    woerter = [w.lower() for w in re.findall(r"\w{3,}", funktion)]
+    try:
+        treffer = requests.get("https://de.wikipedia.org/w/api.php", params={
+            "action": "query", "list": "search", "srsearch": funktion, "srlimit": 3,
+            "format": "json"}, headers=UA, timeout=20).json()["query"]["search"]
+        for t in treffer:
+            titel = re.findall(r"\w{3,}", re.sub(r"\s*\([^)]*\)$", "", t["title"]).lower())
+            if titel and all(any(w.startswith(x) for w in woerter) for x in titel):
+                seiten = requests.get("https://de.wikipedia.org/w/api.php", params={
+                    "action": "query", "prop": "extracts", "exintro": 1,
+                    "explaintext": 1, "titles": t["title"], "format": "json"},
+                    headers=UA, timeout=20).json()["query"]["pages"]
+                return next(iter(seiten.values())).get("extract", "")
+    except (requests.RequestException, ValueError, KeyError, StopIteration) as exc:
+        print(f"    - Wikipedia zu {funktion}: {exc}")
+    return ""
+
+
 def prefilter(items: list, seen: set) -> list:
     """Deterministischer Vorfilter. Kein Modell, keine Kosten."""
     kept = []

@@ -460,11 +460,13 @@
 
   /* --- Signatur 7: Sitzbogen ------------------------------------------ */
 
-  .bogen { position: relative; }
+  /* 80 % der Spaltenbreite: darunter braucht die nach Mehrheit gruppierte
+     Legende Platz (Durchsicht 28.09.2026). */
+  .bogen { position: relative; width: 80%; margin: 0 auto; }
   .bogen svg { display: block; width: 100%; height: auto; }
   .bogen-mitte {
-    position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
-    width: 460px; text-align: center;
+    position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
+    width: 400px; text-align: center;
   }
   .bogen-mitte .zahl {
     font-family: var(--slab); font-weight: 700; font-size: var(--display);
@@ -479,8 +481,60 @@
     column-gap: 40px; row-gap: 16px; font-size: var(--small);
   }
   .legende div { display: flex; align-items: center; gap: 14px; }
+
+  /* Legende nach Mehrheit: eine Box je Lager, gruen dafuer, rot dagegen.
+     Die Richtungsfarben stehen hier nur als Flaeche hinter der Legende,
+     nie auf den Punkten - die tragen weiter die Parteifarbe. */
+  .lager-boxen {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px;
+    margin-top: 36px; font-size: var(--small);
+  }
+  .lager-box {
+    border-radius: 20px; padding: 20px 24px;
+    display: flex; flex-direction: column; gap: 12px;
+    background: rgba(21, 27, 32, 0.06);
+  }
+  .lager-box.dafuer  { background: rgba(30, 123, 69, 0.13); }
+  .lager-box.dagegen { background: rgba(180, 35, 24, 0.11); }
+  .on-ink .lager-box         { background: rgba(250, 250, 248, 0.08); }
+  .on-ink .lager-box.dafuer  { background: rgba(92, 201, 142, 0.18); }
+  .on-ink .lager-box.dagegen { background: rgba(242, 118, 107, 0.18); }
+  .lager-kopf { font-weight: 700; }
+  .lager-box.dafuer .lager-kopf  { color: var(--gut); }
+  .lager-box.dagegen .lager-kopf { color: var(--schlecht); }
+  .on-ink .lager-box.dafuer .lager-kopf  { color: var(--gut-hell); }
+  .on-ink .lager-box.dagegen .lager-kopf { color: var(--schlecht-hell); }
+  .lager-zeile { display: flex; align-items: center; gap: 12px; }
+  .lager-zeile .lager-zahl { margin-left: auto; white-space: nowrap; font-weight: 600; }
+  .bogen-fuss { margin-top: 20px; display: flex; align-items: center; gap: 12px;
+                font-size: var(--small); opacity: 0.75; }
   .swatch { width: 20px; height: 20px; border-radius: 100px; flex: none; }
   .swatch.hohl { background: none; border: 3px solid currentColor; }
+
+  /* --- Anteilsbalken: "Was fruehere Faelle zeigen" -------------------- */
+
+  .anteile { display: flex; flex-direction: column; gap: 30px; margin-bottom: 56px; }
+  .anteil-kopf { display: flex; justify-content: space-between; gap: 24px;
+                 font-size: var(--small); font-weight: 700; }
+  .anteil-kopf span { display: flex; align-items: center; gap: 10px; }
+  .anteil-kopf .an   { color: var(--gut); }
+  .anteil-kopf .rest { color: var(--schlecht); text-align: right; }
+  .anteil-kopf .an .swatch   { background: var(--gut); }
+  .anteil-kopf .rest .swatch { background: var(--schlecht); }
+  .anteil-label { font-size: var(--body); font-weight: 500; margin-bottom: 12px; }
+  .anteil-balken { display: flex; height: 84px; border-radius: 20px; overflow: hidden; }
+  .anteil-balken .teil {
+    display: flex; align-items: center; padding: 0 22px;
+    font-family: var(--slab); font-weight: 700; font-size: var(--body);
+    color: var(--off-white); white-space: nowrap;
+  }
+  .anteil-balken .an   { background: var(--gut); }
+  .anteil-balken .rest { background: var(--schlecht); flex: 1; justify-content: flex-end; }
+  .on-ink .anteil-kopf .an   { color: var(--gut-hell); }
+  .on-ink .anteil-kopf .rest { color: var(--schlecht-hell); }
+  .on-ink .anteil-kopf .an .swatch,   .on-ink .anteil-balken .an   { background: var(--gut-hell); }
+  .on-ink .anteil-kopf .rest .swatch, .on-ink .anteil-balken .rest { background: var(--schlecht-hell); }
+  .on-ink .anteil-balken .teil { color: var(--ink); }
 
   /* --- Signatur 8: Abstimmungsbalken ---------------------------------- */
 
@@ -535,6 +589,7 @@
   /* --- Signatur 3: Pill-Reihen fuer Zahlenlisten ---------------------- */
 
   .pills { display: flex; flex-direction: column; gap: 18px; }
+  .chart-pills { margin-top: 48px; }
   /* Abwechselnd gefuellt und weiss. Womit die Reihe anfaengt, entscheidet
      der Grund: eine weisse Pill auf Off-White verschwindet, eine navyfarbene
      auf Ink ebenso. */
@@ -767,19 +822,28 @@
             {% endif %}
           </div>
         </div>
-        <div class="legende">
-          {% for f in bogen.legende if bogen.art != 'handzeichen' or f.position %}
-            <div><span class="swatch{% if bogen.art == 'handzeichen' and f.position != 'dafür' %} hohl{% endif %}" style="{% if bogen.art == 'handzeichen' and f.position != 'dafür' %}color: {{ f.farbe }}{% else %}background: {{ f.farbe }}{% endif %}"></span>
-              {% for l in f.logos if l %}<img class="logo klein" src="{{ l }}" alt="">{% endfor %}
-              {% if bogen.art == 'handzeichen' %}
-                <span>{{ f.name }}: {{ f.position }}</span></div>
-              {% else %}
-                <span>{{ f.name }}: {{ f.ja }} Ja von {{ f.sitze }}</span></div>
-              {% endif %}
+        {# Je Lager eine Box. Die Zahl ist die des Lagers - in "Dagegen" die
+           Nein-Stimmen, nicht die Ja-Stimmen der Fraktion -, deshalb ohne
+           "Ja"/"Nein" dahinter: das sagt der Kopf der Box. #}
+        <div class="lager-boxen">
+          {% for g in bogen.gruppen %}
+            <div class="lager-box {{ {'dafür': 'dafuer', 'dagegen': 'dagegen'}.get(g.mehrheit, 'neutral') }}">
+              <div class="lager-kopf">{{ {'dafür': 'Dafür', 'dagegen': 'Dagegen', 'enthalten': 'Enthalten', 'geteilt': 'Geteilt'}[g.mehrheit] }}</div>
+              {% for f in g.fraktionen %}
+                <div class="lager-zeile">
+                  <span class="swatch{% if bogen.art == 'handzeichen' and f.position != 'dafür' %} hohl{% endif %}" style="{% if bogen.art == 'handzeichen' and f.position != 'dafür' %}color: {{ f.farbe }}{% else %}background: {{ f.farbe }}{% endif %}"></span>
+                  {% for l in f.logos if l %}<img class="logo klein" src="{{ l }}" alt="">{% endfor %}
+                  <span>{{ f.name }}</span>
+                  {% if bogen.art != 'handzeichen' %}
+                    <span class="lager-zahl">{% if g.mehrheit == 'geteilt' %}{{ f.ja }} Ja, {{ f.nein }} Nein{% else %}{{ {'dafür': f.ja, 'dagegen': f.nein, 'enthalten': f.enthalten}[g.mehrheit] }} von {{ f.sitze }}{% endif %}</span>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
           {% endfor %}
-          <div><span class="swatch hohl"></span>
-            <span>{% if bogen.art == 'handzeichen' %}Position der Fraktion, keine Einzelstimmen{% else %}hohler Punkt: dagegen oder enthalten{% endif %}</span></div>
         </div>
+        <div class="bogen-fuss"><span class="swatch hohl"></span>
+          <span>{% if bogen.art == 'handzeichen' %}Position der Fraktion, keine Einzelstimmen{% else %}hohler Punkt: dagegen, enthalten oder nicht abgestimmt{% endif %}</span></div>
       {% else %}
         <div class="bars{% if chart.divergent %} divergent{% endif %}">
           {% for bar in chart.balken %}
@@ -792,6 +856,16 @@
             </div>
           {% endfor %}
         </div>
+        {# Datenkarussells duerfen unter die Balken Pills haengen: Nebentaetig-
+           keiten zeigen dort den Platz im Bundestag (Durchsicht 28.09.2026). #}
+        {% if chart.pills %}
+          <div class="pills chart-pills">
+            {% for pill in chart.pills %}
+              <div class="pill"><span class="label">{{ pill.label | betrag }}</span>
+                <span class="figure">{{ pill.wert | safe }}</span></div>
+            {% endfor %}
+          </div>
+        {% endif %}
       {% endif %}
       {% if hinweis %}<p class="note">{{ hinweis | betrag }}</p>{% endif %}
 
@@ -865,6 +939,24 @@
           {% endfor %}
         </div>
         {% if saeulen.hinweis %}<p class="note saeulen-note">{{ saeulen.hinweis | betrag }}</p>{% endif %}
+      {% endif %}
+      {# "Was fruehere Faelle zeigen": der Anteil, der ankam, gegen den Rest. #}
+      {% if anteile %}
+        <div class="anteile">
+          <div class="anteil-kopf">
+            <span class="an"><span class="swatch"></span>{{ anteile.an }}</span>
+            <span class="rest"><span class="swatch"></span>{{ anteile.rest }}</span>
+          </div>
+          {% for z in anteile.werte %}
+            <div class="anteil-zeile">
+              <div class="anteil-label">{{ z.label }}</div>
+              <div class="anteil-balken">
+                <div class="teil an" style="width: {{ z.breite }}%">{{ z.an }}</div>
+                <div class="teil rest">{{ z.rest }}</div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
       {% endif %}
       <ul class="arrows">
         {% for absatz in context %}

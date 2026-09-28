@@ -398,9 +398,15 @@ WAHLPERIODE = 21
 #
 # Die Farben sind die einzige Stelle im Deck, an der Parteifarben erlaubt
 # sind (Design-System §1). Nie fuer Text, Karten oder Flaechen verwenden.
+#
+# Der SSW-Sitz bleibt an seinem Platz im Bogen, ist aber grau und steht in
+# der Legende mit unter "Fraktionslos" ("legende"): Seidler IST fraktionslos,
+# und zwei Zeilen "SSW: 0 von 1" und "Fraktionslos: 1 von 2" lasen sich wie
+# doppelt gezaehlt (Durchsicht 28.09.2026).
 BUNDESTAG_SITZE = [
     {"key": "Linke",   "name": "Linke",    "sitze": 64,  "farbe": "#BE3075"},
-    {"key": "SSW",     "name": "SSW",      "sitze": 1,   "farbe": "#003C8F"},
+    {"key": "SSW",     "name": "SSW",      "sitze": 1,   "farbe": "#8A9199",
+     "legende": "Fraktionslos"},
     {"key": "Gruene",  "name": "Grüne",    "sitze": 85,  "farbe": "#409A3C"},
     {"key": "SPD",     "name": "SPD",      "sitze": 120, "farbe": "#E3000F"},
     {"key": "CDU/CSU", "name": "CDU/CSU",  "sitze": 208, "farbe": "#151B20"},

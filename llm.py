@@ -173,6 +173,16 @@ Aufbau:
    - Kein zweiter Gegenstand. Nichts, was die Slides nicht aufgreifen.
    - Kurz, direkt, du-Form. Keine Fragezeichen-Masche, keine Uebertreibung,
      kein Versprechen, das die Slides nicht einloesen.
+   - Ausnahme, und dann die bevorzugte Zeile: Gibt es die Slide "Was
+     fruehere Faelle zeigen" (unten unter "Fruehere Faelle" stehen
+     Eintraege) und zeigt ihr Befund, wie viel von einer Entlastung
+     tatsaechlich ankam, dann ist die Teaserzeile die rhetorische Frage,
+     die genau diese Slide beantwortet:
+       "Aber wie viel kommt davon bei euch an?"
+     Abwandeln darfst du sie, wenn die Sache es verlangt ("Aber wie viel
+     davon landet bei euch?"), eine andere Frage stellen nicht. Ohne diese
+     Slide gibt es keine Frage als Teaserzeile - eine Frage, die das
+     Karussell offenlaesst, ist genau die Masche, die oben verboten ist.
    - Wiederhole die Zahl aus der Schlagzeile nicht. Werde stattdessen
      konkreter: derselbe Gegenstand, aber die Situation dazu.
    - Sag nicht dasselbe zweimal. Beide Zeilen stehen direkt untereinander,
@@ -354,6 +364,24 @@ Aufbau:
    keine eigene Einordnung, keine Prognose fuer diesmal, kein "wird wohl
    wieder". Stehen dort keine Eintraege, gibt es diese Slide nicht, auch
    wenn du selbst etwas darueber weisst.
+   "anteile" (optional): Ist der Befund ein Anteil an einem Ganzen - wie
+   viel Prozent einer Entlastung ankamen, ausgezahlt, weitergegeben oder
+   abgerufen wurden -, dann zeigt die Slide diesen Anteil gross als
+   geteilten Balken: links der Teil, der ankam, rechts der Rest bis 100.
+   Den Rest rechnet der Code, du lieferst nur die Werte und zwei Etiketten:
+   - "werte": 1 bis 2 Zeilen, je "label" (die Sache, max 16 Zeichen:
+     "Diesel", "Super E5", "Mieter") und "wert" (die Prozentzahl, Ziffer fuer
+     Ziffer aus dem Befund, nicht gerundet).
+   - "an": was der Anteil fuer die Leserin heisst, 2 bis 4 Woerter, als
+     Gewinn formuliert ("Kam bei euch an", "Wurde ausgezahlt").
+   - "rest": was mit dem Rest geschah, 2 bis 5 Woerter. Nenne, WER ihn
+     behalten hat, NUR wenn der Befund es sagt ("Blieb bei den
+     Mineraloelkonzernen"). Sagt er es nicht, bleib neutral und benenne,
+     was fehlte ("Nicht weitergegeben", "Nie ausgezahlt", "Nicht
+     abgerufen"). Ein "Extragewinn" oder "Uebergewinn" ist eine Behauptung
+     ueber Gewinne - die steht nur da, wo die Stelle sie selbst erhebt.
+   Ist der Befund kein Anteil (ein Preisanstieg, eine Zahl von Antraegen),
+   lass "anteile" weg - dann bleibt es bei den Saetzen.
 
 Schreibweise:
 - Keine Gedankenstriche. Trenne mit Doppelpunkt, Komma oder Punkt.
@@ -457,7 +485,9 @@ Antworte NUR mit JSON:
              "kopf_neu": "ab 2027",
              "zeilen": [{{"label": "Je Kilometer", "bisher": "30 Cent", "neu": "45 Cent"}}],
              "pills": [{{"label": "Gilt ab", "wert": "01.01.27"}}]}},
-  "vergleich": {{"punkte": ["...", "..."]}},
+  "vergleich": {{"punkte": ["...", "..."],
+                "anteile": {{"an": "Kam bei euch an", "rest": "Nicht weitergegeben",
+                            "werte": [{{"label": "Diesel", "wert": 85.1}}]}}}},
   "beispielwerte": [100, 104.60],
   "abgeleitete_zahlen": [{{"wert": 70, "aus": [1955, 2026], "rechnung": "differenz"}}],
   "fakten_evidence": "..."}}
@@ -613,6 +643,16 @@ Pruefe:
   Recherche, mit derselben Zahl und derselben Stelle? Ist es wirklich
   dieselbe Art Massnahme? Eine eigene Prognose fuer diesmal oder eine
   Verallgemeinerung ueber den Befund hinaus ist ein Durchfaller.
+  Steht dort "anteile" (ein geteilter Balken): Gibt das Etikett "an" den
+  Befund richtig wieder? Und behauptet das Etikett "rest" nicht mehr, als
+  der Befund sagt? "Nicht weitergegeben" traegt jeder Befund ueber eine
+  Weitergabe; wer den Rest behielt ("Blieb bei den Konzernen", "Extra-
+  gewinn") muss im Befund selbst stehen, sonst Durchfaller. Die Zahl
+  "rest" hat der Code als 100 minus "wert" gerechnet, sie stimmt.
+- Teaserzeile als Frage: Erlaubt ist genau eine rhetorische Frage, die die
+  Slide "Was fruehere Faelle zeigen" beantwortet ("Aber wie viel kommt
+  davon bei euch an?"). Steht die Frage da, ohne dass H) sie beantwortet,
+  ist sie ein Durchfaller.
 - Cover-Frage: Beantworten die Slides sie wirklich? Die Frage steht auf der
   ersten Slide und verspricht damit eine Antwort. Verspricht sie mehr, als
   Begriffserklaerung und Folgen-Slide einloesen, oder setzt sie eine Tatsache
@@ -1176,6 +1216,54 @@ def spender_portraet(name: str, quelle: str) -> list:
     return []
 
 
+TAETIGKEIT_PROMPT = """Unten eine Meldung eines Bundestagsabgeordneten
+ueber eine Taetigkeit neben dem Mandat: "{funktion}" bei "{org}". Dazu, wenn
+vorhanden, die Wikipedia-Einleitungen zur Funktion und zur Organisation.
+
+Schreib GENAU 2 kurze Saetze, je hoechstens 150 Zeichen, fuer Leute ohne
+Vorwissen: Was macht man in dieser Funktion (Aufgaben, Verantwortung), und
+was ist die Organisation? Beziehe die Funktion auf die Organisation ("Als
+Generalsekretaer leitet man bei einer Partei ..."), soweit die Angaben das
+tragen. Ist die Organisation eine Partei im Bundestag, kennt sie jeder: dann
+erklaert auch der zweite Satz die Funktion (weitere Aufgaben, Verantwortung)
+statt die Partei vorzustellen. Nur was in den Angaben steht; Zahlen nur, wenn sie dort stehen.
+Nichts darueber, was diese Person konkret getan hat, nichts ueber Motive
+oder Interessenkonflikte, keine Wertung. Schreib mit echten Umlauten
+(ä, ö, ü, ß).
+
+Antworte NUR mit JSON: {{"saetze": ["...", "..."]}}
+
+{quelle}"""
+
+
+def taetigkeit_erklaerung(funktion: str, org: str, quelle: str) -> list:
+    """Zwei belegte Saetze, was eine gemeldete Taetigkeit ist, oder [].
+
+    Dieselbe Pruefung wie beim Spenderportraet: jeder Satz muss im Text
+    stehen, sonst ein zweiter Versuch, dann nichts - die Slide faellt dann
+    auf die Angaben der Meldung allein zurueck.
+    """
+    einwand = ""
+    for _ in range(2):
+        try:
+            resp = client.messages.create(
+                model=config.MODEL_DRAFT, max_tokens=config.DATEN_MAX_TOKENS,
+                messages=[{"role": "user", "content": TAETIGKEIT_PROMPT.format(
+                    funktion=funktion, org=org, quelle=quelle[:5000]) + einwand}])
+            saetze = [umlaute_reparieren(str(s).strip())
+                      for s in _json_from(_text_block(resp)).get("saetze", [])]
+        except Exception as exc:
+            print(f"    ! Taetigkeit nicht erklaert: {exc}")
+            return []
+        falsch = [s for s in saetze if len(s) > 170 or not _belegt(s, quelle)]
+        if len(saetze) == 2 and not falsch:
+            return saetze
+        print(f"    - Taetigkeitserklaerung verworfen: {falsch or saetze}")
+        einwand = ("\n\nDein letzter Versuch enthielt Aussagen, die nicht in "
+                   "den Angaben stehen, oder war zu lang. Bleib naeher am Text.")
+    return []
+
+
 # --- Umlaute -------------------------------------------------------------
 #
 # Das Modell driftet in die Umschrift ab: in einem Lauf schrieb dasselbe
@@ -1324,6 +1412,57 @@ def _fruehere_text(recherche: dict) -> str:
                       f"{f['einheit']}, laut {f['stelle']})" for f in faelle)
 
 
+ANTEIL_LABEL_MAX = 16       # "Super E5", "Mieter" - steht links neben dem Balken
+ANTEIL_ETIKETT_MAX = 36     # "Blieb bei den Mineraloelkonzernen"
+
+
+def _anteile_pruefen(vergleich: dict, faelle: list) -> None:
+    """Der geteilte Balken der Vergleichs-Slide - oder keiner.
+
+    Die Anteile stehen als Zahl im JSON, nicht im Text; die Zahlenpruefung
+    (_slide_zahlen) saehe sie deshalb nie. Hier also dieselbe Pflicht von
+    Hand: jeder Wert steht woertlich im Befund einer geprueften Fundstelle.
+    Den Rest bis 100 rechnet der Code und schreibt ihn dazu - so sieht auch
+    der Faktencheck die Zahl, die auf der Karte steht. Faellt eine Zeile
+    durch, faellt der ganze Balken: die Saetze darunter tragen die Slide
+    auch allein.
+    """
+    import research      # research importiert llm - hier erst, nicht oben
+    roh = vergleich.get("anteile")
+    if not roh:
+        return
+    befunde = " ".join(f"{f.get('befund', '')} {f.get('wert', '')}" for f in faelle)
+    an = str(roh.get("an") or "").strip() if isinstance(roh, dict) else ""
+    rest = str(roh.get("rest") or "").strip() if isinstance(roh, dict) else ""
+    werte, grund = [], ""
+    for z in (roh.get("werte") or [])[:2] if isinstance(roh, dict) else []:
+        try:
+            wert = float(str(z.get("wert")).replace(",", "."))
+        except (TypeError, ValueError, AttributeError):
+            grund = "Wert keine Zahl"
+            break
+        label = str(z.get("label") or "").strip()
+        if not 0 < wert < 100:
+            grund = f"{wert:g} ist kein Anteil"
+        elif not research._steht_im_text(wert, befunde):
+            grund = f"{wert:g} steht in keinem Befund"
+        elif not label or len(label) > ANTEIL_LABEL_MAX:
+            grund = f"Label '{label}'"
+        if grund:
+            break
+        werte.append({"label": label, "wert": wert, "rest": round(100 - wert, 1)})
+    if not grund and not werte:
+        grund = "keine Werte"
+    if not grund and not (an and rest and len(an) <= ANTEIL_ETIKETT_MAX
+                          and len(rest) <= ANTEIL_ETIKETT_MAX):
+        grund = "Etiketten fehlen oder zu lang"
+    if grund:
+        print(f"  - Anteilsbalken gestrichen: {grund}")
+        vergleich.pop("anteile", None)
+        return
+    vergleich["anteile"] = {"an": an, "rest": rest, "werte": werte}
+
+
 def formfehler(slides: dict, recherche: dict) -> str:
     """Was am Aufbau nicht stimmt, als Beanstandung - leer, wenn alles passt.
 
@@ -1339,6 +1478,8 @@ def formfehler(slides: dict, recherche: dict) -> str:
     if slides.get("vergleich") and not (recherche or {}).get("fruehere_faelle"):
         print("  - Vergleichs-Slide gestrichen: keine gepruefte Fundstelle")
         slides.pop("vergleich", None)
+    if slides.get("vergleich"):
+        _anteile_pruefen(slides["vergleich"], recherche["fruehere_faelle"])
 
     wort = str(slides.get("schluesselwort") or "").strip()
     if not wort:

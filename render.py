@@ -737,6 +737,19 @@ def _folgen(slides: dict) -> dict | None:
     return None
 
 
+def _prozent(wert: float) -> str:
+    """82.6 -> "82,6 %"; ganze Zahlen ohne Nachkomma."""
+    return f"{wert:g}".replace(".", ",") + " %"
+
+
+def _anteile(anteile: dict) -> dict:
+    """Der geteilte Balken der Vergleichs-Slide in den Template-Kontext."""
+    return {"an": anteile["an"], "rest": anteile["rest"],
+            "werte": [{"label": z["label"], "breite": z["wert"],
+                       "an": _prozent(z["wert"]), "rest": _prozent(z["rest"])}
+                      for z in anteile["werte"]]}
+
+
 def _seite(seite: dict, fundstelle: str, credits: list) -> dict:
     """Eine vom Datenkarussell vorgegebene Slide in den Template-Kontext.
 
@@ -823,9 +836,11 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
     # beim Balkenvergleich.
     bogen = sitzbogen.bogen(item.get("abstimmung") or {})
     # Auch die Legende des Sitzbogens ist ein Diagramm: Logo vor den Namen.
+    # Fuer CDU/CSU nur das CDU-Logo - zwei Logos in einer Legendenzeile
+    # brachen den Namen um (Durchsicht 28.09.2026); "CDU/CSU" steht daneben.
     for f in (bogen or {}).get("legende", []):
         f["logos"] = [_logo(k, credits) for k in
-                      _PARTEI_LOGOS.get(f["name"], ())]
+                      _PARTEI_LOGOS.get(f["name"], ())[:1]]
 
     # Bild nur aufs Cover, nur wenn ein Thema trifft - sonst None. Wird am
     # Karussell vermerkt, damit build_caption den Foto-Credit mitschickt.
@@ -911,9 +926,14 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
     if vergleich and not slides.get("seiten"):
         stellen = [f["stelle"] for f in
                    (carousel.get("recherche") or {}).get("fruehere_faelle", [])]
+        # Ist der Befund ein Anteil, steht er als geteilter Balken ueber den
+        # Saetzen (llm._anteile_pruefen hat Werte und Rest schon geprueft).
+        # Dann tragen zwei Saetze die Slide, ein dritter wird zu eng.
+        anteile = (slides.get("vergleich") or {}).get("anteile")
         pages.append({"kind": "context",
                       "headline_html": _headline("Was frühere Fälle zeigen"),
-                      "context": vergleich[:3],
+                      "anteile": _anteile(anteile) if anteile else None,
+                      "context": vergleich[:2 if anteile else 3],
                       "foot_source": ("Auswertung: " + ", ".join(dict.fromkeys(stellen))
                                       if stellen else fundstelle)})
 
