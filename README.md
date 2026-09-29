@@ -39,6 +39,8 @@ Siehe **SETUP.md**. Phase 0 (zwei Wochen von Hand) nicht ueberspringen.
 | `notify.py` | Schickt alles per Telegram und holt deine Freigabe |
 | `ablage.py` | Legt die freigegebenen Karten fuer Instagram oeffentlich ab |
 | `instagram.py` | Laedt das freigegebene Karussell hoch |
+| `englisch.py` | Uebersetzt das freigegebene Karussell und postet es aufs englische Zweitkonto |
+| `sprache.py` | Feste Kartentexte je Sprache und das Glossar fuer die Uebersetzung |
 | `run.py` | Startet den Tageslauf |
 | `impressum.html` | Vorlage fuer GitHub Pages |
 

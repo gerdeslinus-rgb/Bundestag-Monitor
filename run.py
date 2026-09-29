@@ -24,6 +24,7 @@ load_dotenv()   # liest .env, bevor Module die Keys brauchen
 import ablage
 import config
 import cover
+import englisch
 import instagram
 import llm
 import notify
@@ -118,6 +119,14 @@ def main() -> int:
     sources.save_seen(seen)
     notify.send_text(f"Option {wahl} ist online.")
     print("Fertig. Online.")
+
+    # Die englische Fassung fuers zweite Konto - ohne eigene Freigabe, und
+    # ein Fehler dort aendert nichts am deutschen Post (englisch.py).
+    try:
+        englisch.posten(carousels[wahl - 1], wahl)
+    except Exception as exc:
+        notify.send_error("Deutscher Post ist online, die englische Fassung "
+                          f"nicht:\n{instagram.ohne_geheimnis(str(exc))}")
     return 0
 
 

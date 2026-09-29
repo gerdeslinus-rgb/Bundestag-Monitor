@@ -243,6 +243,19 @@ pruefe("1b sonst weiter moeglich",
        cover._frage({"cover_frage": "Was ist der Tankrabatt?", "hook": "Ab Oktober"}),
        "Was ist der Tankrabatt?")
 
+print("\nEnglische Fassung (Zahlen, Uebersetzungsumfang):")
+import englisch
+render._SPRACHE[0] = "en"
+pruefe("1200 englisch", render._zahl(1200), "1,200")
+pruefe("82,6 englisch", render._prozent(82.6), "82.6%")
+render._SPRACHE[0] = "de"
+pruefe("1200 deutsch", render._zahl(1200), "1.200")
+stellen = dict(englisch._sammeln({"slides": {
+    "titel": "Tankrabatt", "folgen": {"muster": "4c", "payoff": "Du zahlst weniger."},
+    "fakten_evidence": "Beleg", "chart": {"wertung": "neutral", "titel": "Energiesteuer"}}}))
+pruefe("nur Anzeigetexte", sorted(stellen.values()),
+       ["Du zahlst weniger.", "Energiesteuer", "Tankrabatt"])
+
 print("\nZweiter Versuch nach Aufbaufehler:")
 sources.ensure_volltext = lambda item: item
 einwaende = []

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="{{ t.lang }}">
 <head>
 <meta charset="utf-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -750,7 +750,7 @@
       <h1>{{ headline_html | safe }}</h1>
       <div class="paare">
         <div class="paar alt">
-          <span class="spur">bisher</span>
+          <span class="spur">{{ t.bisher }}</span>
           <span class="figur">{{ vn.bisher | safe }}</span>
         </div>
         <div class="paar">
@@ -822,11 +822,11 @@
              Bei Handzeichen gibt es keine Zahlen, nur das Ergebnis. #}
           <div class="bogen-mitte">
             {% if bogen.art == 'handzeichen' %}
-              <div class="zahl wort">{{ 'Angenommen' if bogen.angenommen else 'Abgelehnt' }}</div>
-              <div class="basis">per Handzeichen</div>
+              <div class="zahl wort">{{ t.angenommen if bogen.angenommen else t.abgelehnt }}</div>
+              <div class="basis">{{ t.per_handzeichen }}</div>
             {% else %}
               <div class="zahl">{{ bogen.ja }}</div>
-              <div class="basis">von {{ bogen.benoetigt }} benötigten</div>
+              <div class="basis">{{ t.benoetigt.format(n=bogen.benoetigt) }}</div>
             {% endif %}
           </div>
         </div>
@@ -836,14 +836,14 @@
         <div class="lager-boxen">
           {% for g in bogen.gruppen %}
             <div class="lager-box {{ {'dafür': 'dafuer', 'dagegen': 'dagegen'}.get(g.mehrheit, 'neutral') }}">
-              <div class="lager-kopf">{{ {'dafür': 'Dafür', 'dagegen': 'Dagegen', 'enthalten': 'Enthalten', 'geteilt': 'Geteilt'}[g.mehrheit] }}</div>
+              <div class="lager-kopf">{{ t.lager[g.mehrheit] }}</div>
               {% for f in g.fraktionen %}
                 <div class="lager-zeile">
                   <span class="swatch" style="background: {{ f.farbe }}"></span>
                   {% for l in f.logos if l %}<img class="logo klein" src="{{ l }}" alt="">{% endfor %}
-                  <span>{{ f.name }}</span>
+                  <span>{{ f.anzeige or f.name }}</span>
                   {% if bogen.art != 'handzeichen' %}
-                    <span class="lager-zahl">{% if g.mehrheit == 'geteilt' %}{{ f.ja }} Ja, {{ f.nein }} Nein{% else %}{{ {'dafür': f.ja, 'dagegen': f.nein, 'enthalten': f.enthalten}[g.mehrheit] }} von {{ f.sitze }}{% endif %}</span>
+                    <span class="lager-zahl">{% if g.mehrheit == 'geteilt' %}{{ f.ja }} {{ t.stimmen.ja }}, {{ f.nein }} {{ t.stimmen.nein }}{% else %}{{ {'dafür': f.ja, 'dagegen': f.nein, 'enthalten': f.enthalten}[g.mehrheit] }} {{ t.von }} {{ f.sitze }}{% endif %}</span>
                   {% endif %}
                 </div>
               {% endfor %}
@@ -853,8 +853,7 @@
         {# Schluessel der Punktzustaende, nur was im Bogen vorkommt. Gleiche
            Formen wie im SVG, neutral in der Textfarbe. #}
         <div class="bogen-fuss">
-          {% set namen = {'ja': 'Ja', 'nein': 'Nein', 'enthalten': 'Enthalten', 'fehlt': 'nicht abgestimmt'} if bogen.art != 'handzeichen'
-                         else {'ja': 'dafür', 'nein': 'dagegen', 'enthalten': 'enthalten', 'fehlt': 'ohne Position'} %}
+          {% set namen = t.stimmen if bogen.art != 'handzeichen' else t.positionen %}
           {% for z in bogen.zustaende %}
             <span class="zustand"><svg width="20" height="20" viewBox="0 0 20 20">
               {% if z == 'nein' %}<circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="2.6"/>
@@ -863,7 +862,7 @@
               {% else %}<circle cx="10" cy="10" r="9" fill="currentColor"/>{% endif %}
             </svg>{{ namen[z] }}</span>
           {% endfor %}
-          {% if bogen.art == 'handzeichen' %}<span>Position der Fraktion, keine Einzelstimmen</span>{% endif %}
+          {% if bogen.art == 'handzeichen' %}<span>{{ t.handzeichen_hinweis }}</span>{% endif %}
         </div>
       {% else %}
         <div class="bars{% if chart.divergent %} divergent{% endif %}">
@@ -905,7 +904,7 @@
         </div>
       </div>
       {% if begriff.warum %}
-        <p class="kartentitel" style="margin: 0">{{ nachtitel or 'Warum überhaupt ändern?' }}</p>
+        <p class="kartentitel" style="margin: 0">{{ nachtitel or t.warum }}</p>
         <ul class="arrows">
           {% for grund in begriff.warum %}
             <li><span class="mark"><svg viewBox="0 0 40 40" fill="none" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h15M21 13.5l6.5 6.5-6.5 6.5"/></svg></span><span class="txt">{{ grund | betrag }}</span></li>
@@ -918,7 +917,7 @@
          Forderung, darunter die Organisationen. Dazwischen "gegen". #}
       <div class="lagerfeld">
         {% for l in lager %}
-          {% if not loop.first %}<div class="gegen"><span>gegen</span></div>{% endif %}
+          {% if not loop.first %}<div class="gegen"><span>{{ t.gegen }}</span></div>{% endif %}
           <div class="lagerblock lagerblock-{{ loop.index }}">
             <p class="lager-titel">{{ l.titel | betrag }}</p>
             {% for p in l.positionen %}
@@ -1012,7 +1011,7 @@
 
       {% elif folgen.muster == '4b' %}
         <div class="card gefuellt">
-          <p class="kartentitel">Ja, wenn</p>
+          <p class="kartentitel">{{ t.ja_wenn }}</p>
           <ul class="bullets">
             {% for zeile in folgen.ja %}
               <li>{{ ikon('check') }}<span>{{ zeile | betrag }}</span></li>
@@ -1020,7 +1019,7 @@
           </ul>
         </div>
         <div class="card kontur">
-          <p class="kartentitel">Nein, wenn</p>
+          <p class="kartentitel">{{ t.nein_wenn }}</p>
           <ul class="bullets">
             {% for zeile in folgen.nein %}
               <li>{{ ikon('cross') }}<span>{{ zeile | betrag }}</span></li>

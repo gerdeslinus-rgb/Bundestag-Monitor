@@ -1,5 +1,6 @@
 """Baut aus einem geprueften Karussell die Instagram-Slides (1080x1350)."""
 
+import os
 import re
 import shutil
 from datetime import datetime
@@ -16,9 +17,12 @@ import config
 import cover
 import logos
 import sitzbogen
+import sprache
 
 OUT = Path("out")
 HANDLE = "@Bundestag_Monitor"
+# Konto der englischen Fassung (englisch.py); ohne Angabe dasselbe.
+HANDLE_EN = os.environ.get("IG_EN_HANDLE", "") or HANDLE
 MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli",
           "August", "September", "Oktober", "November", "Dezember"]
 
@@ -143,6 +147,37 @@ _ZEILEN_JS = """(el) => {
 }"""
 
 
+# Laeuft etwas aus der Karte? Gemessen im gerenderten Browser, nach den
+# Schriften: Inhalt, der unter den Fuss rutscht, und Elemente, die breiter
+# sind als ihr Platz (ein englisches Wort ist oft laenger, eine Zahl nicht).
+# Leer heisst: nichts gefunden. Die englische Fassung geht nur ohne Befund
+# online (englisch.py) - das ist ihre einzige Pruefung.
+_UEBERLAUF_JS = """() => {
+  const sec = document.querySelector('section');
+  if (!sec) return '';
+  const box = sec.getBoundingClientRect();
+  const fuss = document.querySelector('.foot');
+  const grenze = fuss ? fuss.getBoundingClientRect().top : box.bottom;
+  const inhalt = document.querySelector('.content');
+  if (inhalt) {
+    let unten = 0;
+    for (const el of inhalt.querySelectorAll('*')) {
+      const r = el.getBoundingClientRect();
+      if (r.height > 0) unten = Math.max(unten, r.bottom);
+    }
+    if (unten > grenze + 2) return 'Inhalt reicht ' + Math.round(unten - grenze) + ' px in den Fuss';
+  }
+  for (const el of sec.querySelectorAll('h1, p, span, div, li')) {
+    if (el.scrollWidth > el.clientWidth + 2 && getComputedStyle(el).overflow !== 'visible')
+      return 'Text abgeschnitten: ' + (el.textContent || '').trim().slice(0, 40);
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && (r.right > box.right + 1 || r.left < box.left - 1))
+      return 'laeuft seitlich aus der Karte: ' + (el.textContent || '').trim().slice(0, 40);
+  }
+  return '';
+}"""
+
+
 def _zeilen_deckeln(page, kind: str) -> None:
     """Setzt die Schlagzeile so lange kleiner, bis sie in drei Zeilen passt."""
     el = page.query_selector("section h1")
@@ -245,11 +280,18 @@ def _cover_headline(text: str) -> str:
     return f'{kopf}{trenner}<span class="accent">{schluss}</span>'
 
 
+# Sprache des Karussells, das gerade gebaut wird ("de" oder "en"). Wie
+# _SCHLUESSEL von build_carousel gesetzt: Zahlen und feste Texte haengen daran.
+_SPRACHE: list = ["de"]
+
+
 def _zahl(wert: float) -> str:
-    """Deutsche Zahlendarstellung: 1200 -> 1.200, 59.1 -> 59,1"""
+    """1200 -> 1.200, 59.1 -> 59,1 - auf Englisch 1,200 und 59.1."""
     if float(wert).is_integer():
-        return f"{int(wert):,}".replace(",", ".")
-    return f"{wert:.1f}".replace(".", ",")
+        ganz = f"{int(wert):,}"
+        return ganz if _SPRACHE[0] == "en" else ganz.replace(",", ".")
+    zahl = f"{wert:.1f}"
+    return zahl if _SPRACHE[0] == "en" else zahl.replace(".", ",")
 
 
 # Parteien, wie sie in Schlagzeilen und Balkenbeschriftungen stehen, auf den
@@ -260,7 +302,9 @@ PARTEIEN = [("CDU/CSU", ("CDU", "CSU")), ("Bündnis 90/Die Grünen", ("Grüne",)
             ("Grünen", ("Grüne",)), ("Grüne", ("Grüne",)), ("Linken", ("Linke",)),
             ("Linke", ("Linke",)), ("CDU", ("CDU",)), ("CSU", ("CSU",)),
             ("SPD", ("SPD",)), ("AfD", ("AfD",)), ("FDP", ("FDP",)),
-            ("BSW", ("BSW",)), ("SSW", ("SSW",)), ("Volt", ("Volt",))]
+            ("BSW", ("BSW",)), ("SSW", ("SSW",)), ("Volt", ("Volt",)),
+            # Englische Fassung (englisch.py): dieselben Logos.
+            ("Greens", ("Grüne",)), ("The Left", ("Linke",))]
 _PARTEI = re.compile(
     r"(?<![\w/])(?:(?:[Dd]ie|[Dd]er|[Dd]as|[Dd]en|[Dd]em)\s+)?(?P<p>"
     + "|".join(re.escape(p) for p, _ in PARTEIEN) + r")(?![\w/])")
@@ -682,7 +726,7 @@ def _folgen(slides: dict) -> dict | None:
                   f"verschoben")
         return {
             "muster": "4a",
-            "kopf_neu": folgen.get("kopf_neu") or "neu",
+            "kopf_neu": folgen.get("kopf_neu") or sprache.TEXTE[_SPRACHE[0]]["neu"],
             "zeilen": [{"label": z.get("label", ""),
                         "bisher": _wert(z.get("bisher")),
                         "neu": _wert(z.get("neu"))}
@@ -700,7 +744,7 @@ def _folgen(slides: dict) -> dict | None:
     if muster == "4c" and folgen.get("payoff"):
         return {"muster": "4c", "payoff": folgen["payoff"],
                 "erklaerung": folgen.get("erklaerung", ""),
-                "schritt_titel": folgen.get("schritt_titel") or SCHRITT_TITEL,
+                "schritt_titel": folgen.get("schritt_titel") or sprache.TEXTE[_SPRACHE[0]]["schritte"],
                 "schritte": folgen.get("schritte", []) or [],
                 "hinweis": folgen.get("hinweis", "")}
 
@@ -738,7 +782,9 @@ def _folgen(slides: dict) -> dict | None:
 
 
 def _prozent(wert: float) -> str:
-    """82.6 -> "82,6 %"; ganze Zahlen ohne Nachkomma."""
+    """82.6 -> "82,6 %" (englisch "82.6%"); ganze Zahlen ohne Nachkomma."""
+    if _SPRACHE[0] == "en":
+        return f"{wert:g}%"
     return f"{wert:g}".replace(".", ",") + " %"
 
 
@@ -774,7 +820,7 @@ def _seite(seite: dict, fundstelle: str, credits: list) -> dict:
                 "nachtitel": seite.get("nachtitel", "")}
     if art == "vergleich":
         folgen = _folgen({"folgen": {**seite, "muster": "4a"}})
-        folgen["kopf_alt"] = seite.get("kopf_alt") or "bisher"
+        folgen["kopf_alt"] = seite.get("kopf_alt") or sprache.TEXTE[_SPRACHE[0]]["bisher"]
         return {**ctx, "kind": "folgen", "folgen": folgen}
     if art == "positionen":
         return {**ctx, "kind": "positionen",
@@ -793,7 +839,8 @@ def _seite(seite: dict, fundstelle: str, credits: list) -> dict:
     raise ValueError(f"unbekannte Slide-Art {art}")
 
 
-def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> list:
+def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None,
+                   sprache_: str = "de") -> list:
     """Rendert die Slides eines Karussells nach out/karussell_<n>/.
 
     `zuletzt` sind die zuletzt gezogenen Cover-Architekturen; sie werden von
@@ -807,8 +854,12 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
     """
     slides = carousel["slides"]
     item = carousel["item"]
+    _SPRACHE[0] = sprache_
+    carousel["sprache"] = sprache_
+    carousel["layout_probleme"] = []
+    t = sprache.TEXTE[sprache_]
 
-    ziel = OUT / f"karussell_{nummer}"
+    ziel = OUT / f"karussell_{nummer}{'' if sprache_ == 'de' else '_' + sprache_}"
     if ziel.exists():
         shutil.rmtree(ziel)
     ziel.mkdir(parents=True)
@@ -841,6 +892,7 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
     for f in (bogen or {}).get("legende", []):
         f["logos"] = [_logo(k, credits) for k in
                       _PARTEI_LOGOS.get(f["name"], ())[:1]]
+        f["anzeige"] = t["parteien"].get(f["name"], f["name"])
 
     # Bild nur aufs Cover, nur wenn ein Thema trifft - sonst None. Wird am
     # Karussell vermerkt, damit build_caption den Foto-Credit mitschickt.
@@ -858,7 +910,10 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
 
     bild = None
     if variante in cover.FOTO_VARIANTEN:
-        bild = bilder.hole(thema, cover.FOTO_VARIANTEN[variante])
+        # Die englische Fassung nimmt das Foto der deutschen (bild_fest):
+        # dasselbe Karussell, nur uebersetzt - kein zweiter Wurf bei Pexels.
+        bild = (carousel.get("bild_fest")
+                or bilder.hole(thema, cover.FOTO_VARIANTEN[variante]))
         if not bild:
             # Das Bild ist ausgeblieben, die Fotovariante traegt also nicht
             # mehr. Neu ziehen, diesmal ohne Fotovarianten - ein Cover mit
@@ -872,7 +927,7 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
 
     # Eine Abstimmungs-Slide nennt Quelle UND Wahlperiode, sonst ist die
     # Sitzverteilung nicht nachpruefbar.
-    chart_fuss = (f"{item['source']}\n{config.WAHLPERIODE}. Wahlperiode"
+    chart_fuss = (f"{item['source']}\n{t['wahlperiode'].format(n=config.WAHLPERIODE)}"
                   if bogen else fundstelle)
 
     pages = [
@@ -881,7 +936,7 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
         {"kind": "chart",
          # Mit Bogen zeigt die Slide die Abstimmung, nicht mehr das Diagramm
          # des Modells - dessen Titel ("Steuerausfall ...") passte dann nicht.
-         "headline_html": _headline("So hat der Bundestag abgestimmt" if bogen
+         "headline_html": _headline(t["abgestimmt"] if bogen
                                     else chart.get("titel", "")),
          "chart": chart,
          "bogen": bogen,
@@ -902,7 +957,7 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
     elif begriff.get("saetze"):
         pages.append({"kind": "begriff",
                       "headline_html": _headline(begriff.get("titel")
-                                                 or "Worum es geht"),
+                                                 or t["worum"]),
                       "begriff": _begriff_kuerzen(begriff),
                       # Statistik-Karussells: "Genauer hingeschaut" statt
                       # "Warum ueberhaupt aendern?" (weitere.destatis).
@@ -931,10 +986,10 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
         # Dann tragen zwei Saetze die Slide, ein dritter wird zu eng.
         anteile = (slides.get("vergleich") or {}).get("anteile")
         pages.append({"kind": "context",
-                      "headline_html": _headline("Was frühere Fälle zeigen"),
+                      "headline_html": _headline(t["fruehere"]),
                       "anteile": _anteile(anteile) if anteile else None,
                       "context": vergleich[:2 if anteile else 3],
-                      "foot_source": ("Auswertung: " + ", ".join(dict.fromkeys(stellen))
+                      "foot_source": (t["auswertung"] + ", ".join(dict.fromkeys(stellen))
                                       if stellen else fundstelle)})
 
     # Slide 4: eines der vier Muster, nie freier Fliesstext. Profil-Karussells
@@ -946,17 +1001,17 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
               f"Chart - Muster passt vermutlich nicht")
     if folgen:
         pages.append({"kind": "folgen",
-                      "headline_html": _headline("Was heißt das für dich?"),
+                      "headline_html": _headline(t["fuer_dich"]),
                       "folgen": folgen,
                       "foot_source": fundstelle})
 
     slides["logo_credits"] = list(dict.fromkeys(credits + _KOPF_CREDITS))
 
     pages.append({"kind": "cta",
-                  "headline_html": _headline(config.CTA_HEADLINE),
-                  "cta_body": config.CTA_BODY,
-                  "cta_action": config.CTA_ACTION,
-                  "foot_source": HANDLE})
+                  "headline_html": _headline(t["cta_headline"]),
+                  "cta_body": t["cta_body"],
+                  "cta_action": t["cta_action"],
+                  "foot_source": HANDLE_EN if sprache_ == "en" else HANDLE})
 
     # Der Wechsel startet am Grund des gezogenen Covers - bei 1c und 1e laeuft
     # das Deck also hell, ink, hell, ink, hell.
@@ -979,7 +1034,7 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
             # bezahlt waren. Eine fehlende Schrift darf ein fertiges
             # Karussell nicht kosten: erst das Markup, dann die Schriften -
             # und wenn die ausbleiben, wird eben mit Ersatzschrift gerendert.
-            page.set_content(template.render(**ctx),
+            page.set_content(template.render(**ctx, t=t),
                              wait_until="domcontentloaded", timeout=60000)
             try:
                 page.wait_for_function("document.fonts.status === 'loaded'",
@@ -990,6 +1045,11 @@ def build_carousel(carousel: dict, nummer: int, zuletzt: list | None = None) -> 
             # Nach den Schriften, vor dem Bild: mit Ersatzschrift gemessen
             # waere die Zeilenzahl eine andere als die auf der Karte.
             _zeilen_deckeln(page, ctx.get("kind", "?"))
+            problem = page.evaluate(_UEBERLAUF_JS)
+            if problem:
+                print(f"    ! Slide {n + 1}: {problem}")
+                carousel.setdefault("layout_probleme", []).append(
+                    f"Slide {n + 1}: {problem}")
             path = ziel / f"{n:02d}.png"
             page.screenshot(path=str(path))
             paths.append(path)
@@ -1043,6 +1103,7 @@ def build_caption(carousel: dict) -> str:
     slides = carousel["slides"]
     item = carousel["item"]
     now = datetime.now(ZoneInfo(config.TIMEZONE))
+    t = sprache.TEXTE[carousel.get("sprache", "de")]
 
     # Die "Was heisst das fuer dich"-Aussage ist der beste Einzeiler.
     # Datenkarussells haben keine - dann der Haken vom Cover.
@@ -1050,13 +1111,13 @@ def build_caption(carousel: dict) -> str:
     lines = [slides.get("titel", item["title"])]
     if kern:
         lines += ["", kern]
-    lines += ["", "Alle Details im Karussell ➡️", "", "—",
-              f"Quelle: {_caption_quelle(item['source'])}, {now:%d.%m.%Y}",
-              "Aus amtlichen Quellen, redaktionell geprüft."]
+    lines += ["", t["details"], "", "—",
+              f"{t['quelle']}: {_caption_quelle(item['source'])}, {now.strftime(t['datum'])}",
+              t["geprueft"]]
 
     bild = carousel.get("bild")
     if bild:
-        lines.append(f"Foto: {bild['fotograf']}/Pexels")
+        lines.append(f"{t['foto']}: {bild['fotograf']}/Pexels")
 
     roh = [(slides.get("portraet") or {}).get("credit"),
            *(slides.get("logo_credits") or [])]
@@ -1065,5 +1126,5 @@ def build_caption(carousel: dict) -> str:
     if commons:
         lines.append(" · ".join(commons) + " (Wikimedia Commons)")
 
-    lines += ["", HASHTAGS]
+    lines += ["", t["hashtags"]]
     return "\n".join(lines)

@@ -36,12 +36,20 @@ def ohne_geheimnis(text: str) -> str:
     langlebiges Instagram-Token, das dort im Klartext landet, gilt sechzig
     Tage und haengt an einem Konto, das posten darf.
     """
-    token = os.environ.get("IG_ACCESS_TOKEN", "")
-    return text.replace(token, "<IG_ACCESS_TOKEN>") if token else text
+    for name in ("IG_ACCESS_TOKEN", "IG_EN_ACCESS_TOKEN"):
+        token = os.environ.get(name, "")
+        if token:
+            text = text.replace(token, f"<{name}>")
+    return text
 
 
-def _post(pfad: str, **felder) -> dict:
-    felder["access_token"] = os.environ["IG_ACCESS_TOKEN"]
+def _token(konto: str) -> str:
+    """Token des Kontos: "" ist das deutsche, "EN" das englische."""
+    return os.environ[f"IG_{konto}_ACCESS_TOKEN" if konto else "IG_ACCESS_TOKEN"]
+
+
+def _post(pfad: str, konto: str = "", **felder) -> dict:
+    felder["access_token"] = _token(konto)
     # Token im Rumpf, nicht in der URL: sonst steht es in jeder Fehlermeldung
     # von requests und in jedem Proxy-Log.
     resp = requests.post(f"{API}/{pfad}", data=felder, timeout=60)
@@ -50,14 +58,14 @@ def _post(pfad: str, **felder) -> dict:
     return resp.json()
 
 
-def _warte_auf_fertig(container: str, sekunden: int = 120) -> None:
+def _warte_auf_fertig(container: str, sekunden: int = 120, konto: str = "") -> None:
     """Wartet, bis der Sammel-Container verarbeitet ist.
 
     media_publish auf einen Container, der noch "IN_PROGRESS" ist, quittiert
     die API mit einer Meldung, die wie ein Rechteproblem aussieht. Lieber hier
     warten als dort raten.
     """
-    token = os.environ["IG_ACCESS_TOKEN"]
+    token = _token(konto)
     ende = time.time() + sekunden
     while time.time() < ende:
         resp = requests.get(f"{API}/{container}",
@@ -73,24 +81,26 @@ def _warte_auf_fertig(container: str, sekunden: int = 120) -> None:
                        f"{sekunden} s nicht fertig")
 
 
-def veroeffentliche(bild_urls: list, caption: str) -> str:
-    """Postet die Bilder als ein Karussell und liefert die Post-ID."""
-    nutzer = os.environ["IG_USER_ID"]
+def veroeffentliche(bild_urls: list, caption: str, konto: str = "") -> str:
+    """Postet die Bilder als ein Karussell und liefert die Post-ID.
+
+    `konto` "EN" nimmt IG_EN_USER_ID und IG_EN_ACCESS_TOKEN (englisch.py)."""
+    nutzer = os.environ[f"IG_{konto}_USER_ID" if konto else "IG_USER_ID"]
     if not MIN_BILDER <= len(bild_urls) <= MAX_BILDER:
         raise ValueError(f"Instagram nimmt {MIN_BILDER} bis {MAX_BILDER} "
                          f"Bilder, dieses Karussell hat {len(bild_urls)}")
 
     kinder = []
     for url in bild_urls:
-        antwort = _post(f"{nutzer}/media", image_url=url,
+        antwort = _post(f"{nutzer}/media", konto, image_url=url,
                         is_carousel_item="true")
         kinder.append(antwort["id"])
         print(f"    + Container {antwort['id']} ({url.rsplit('/', 1)[-1]})")
 
-    sammel = _post(f"{nutzer}/media", media_type="CAROUSEL",
+    sammel = _post(f"{nutzer}/media", konto, media_type="CAROUSEL",
                    children=",".join(kinder), caption=caption)["id"]
-    _warte_auf_fertig(sammel)
+    _warte_auf_fertig(sammel, konto=konto)
 
-    post = _post(f"{nutzer}/media_publish", creation_id=sammel)["id"]
+    post = _post(f"{nutzer}/media_publish", konto, creation_id=sammel)["id"]
     print(f"  = veroeffentlicht, Post {post}")
     return post

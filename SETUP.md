@@ -94,6 +94,25 @@ scheitert. Du kannst sie also nachholen.
 du bekommst eine Telegram-Meldung, aber keine Vorwarnung. Trag dir eine
 Erinnerung ein.
 
+### 1.6 Englisches Zweitkonto (optional)
+
+Nach jedem freigegebenen deutschen Post uebersetzt `englisch.py` das
+Karussell und postet es auf ein zweites Konto - ohne eigene Freigabe. Geprueft
+wird nur, ob die englischen Karten sauber aussehen (nichts laeuft aus der
+Karte); sonst geht nichts online und Telegram sagt warum. Der deutsche Post
+ist davon nie betroffen.
+
+1. Zweites Instagram-Konto, ebenfalls Professional (Business oder Creator).
+2. In derselben Meta-App unter "API setup with Instagram login" ein zweites
+   Konto hinzufuegen und dafuer ein eigenes langlebiges Token erzeugen.
+3. Als Secrets: `IG_EN_USER_ID`, `IG_EN_ACCESS_TOKEN`. Als Variable
+   `IG_EN_HANDLE` (steht im Fuss der letzten Slide, z. B. `@bundestag_explained`).
+   Lokal dieselben drei in die `.env`.
+
+Ohne diese Angaben gibt es nur das deutsche Konto. Auch dieses Token laeuft
+nach etwa 60 Tagen ab. Die festen englischen Texte (Abschluss-Slide,
+Hashtags, Beschriftungen) und das Glossar stehen in `sprache.py`.
+
 **API-Version:** In `instagram.py` steht oben `API = ".../v21.0"`. Meta stellt
 alte Versionen nach etwa zwei Jahren ab. Laeuft der Upload ploetzlich in einen
 Fehler, der nach einem Rechteproblem aussieht, ist meist diese Zeile faellig.
@@ -153,6 +172,7 @@ der Fehler im Terminal.
    - `DIP_API_KEY` (falls vorhanden)
    - `PEXELS_API_KEY` (falls du Titelbilder willst)
    - `IG_USER_ID` und `IG_ACCESS_TOKEN` (aus Schritt 1.5)
+   - optional `IG_EN_USER_ID` und `IG_EN_ACCESS_TOKEN` (Schritt 1.6)
 3. **Settings → Secrets and variables → Actions → Variables → New variable**
    - `PAGES_BASE_URL`, die Basis deiner Pages-Adresse ohne Schraegstrich am
      Ende, Form: `https://deinname.github.io/politik-digest`

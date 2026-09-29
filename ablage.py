@@ -52,7 +52,7 @@ def _identitaet_sichern() -> None:
         _git("config", "user.name", "digest-bot")
 
 
-def ablegen(pfade: list, nummer: int) -> list:
+def ablegen(pfade: list, nummer: int, suffix: str = "") -> list:
     """Kopiert die JPEGs nach docs/, pusht sie und liefert ihre URLs.
 
     Der Datumsordner haelt die Laeufe auseinander: ohne ihn ueberschreibt der
@@ -61,7 +61,8 @@ def ablegen(pfade: list, nummer: int) -> list:
     """
     basis = os.environ["PAGES_BASE_URL"].rstrip("/")
     tag = datetime.now(ZoneInfo(config.TIMEZONE)).strftime("%Y-%m-%d")
-    ziel = DOCS / UNTERORDNER / tag / f"karussell_{nummer}"
+    # suffix "_en": die englische Fassung liegt neben der deutschen.
+    ziel = DOCS / UNTERORDNER / tag / f"karussell_{nummer}{suffix}"
 
     if ziel.exists():
         shutil.rmtree(ziel)
@@ -74,11 +75,11 @@ def ablegen(pfade: list, nummer: int) -> list:
             raise FileNotFoundError(
                 f"{jpg} fehlt - render.py schreibt das JPEG neben das PNG")
         shutil.copy2(jpg, ziel / jpg.name)
-        urls.append(f"{basis}/{UNTERORDNER}/{tag}/karussell_{nummer}/{jpg.name}")
+        urls.append(f"{basis}/{UNTERORDNER}/{tag}/karussell_{nummer}{suffix}/{jpg.name}")
 
     _identitaet_sichern()
     _git("add", "--", str(DOCS))
-    _git("commit", "-m", f"karten: {tag} karussell {nummer}")
+    _git("commit", "-m", f"karten: {tag} karussell {nummer}{suffix}")
     # Der Lauf wartet bis zu Stunden auf die Freigabe. Pusht in der Zeit
     # jemand anderes nach main, wird ein blankes push abgewiesen - und die
     # Freigabe ist erteilt, aber nichts geht online.
