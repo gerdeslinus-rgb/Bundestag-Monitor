@@ -2,7 +2,8 @@
  "Friedrich Merz": {
   "politiker": 118559,
   "mandat": 68737,
-  "url": "https://www.abgeordnetenwatch.de/profile/friedrich-merz"
+  "url": "https://www.abgeordnetenwatch.de/profile/friedrich-merz",
+  "mandat_vorher": 53850
  },
  "Jens Spahn": {
   "politiker": 78993,
@@ -13,7 +14,8 @@
  "Armin Laschet": {
   "politiker": 130072,
   "mandat": 68692,
-  "url": "https://www.abgeordnetenwatch.de/profile/armin-laschet"
+  "url": "https://www.abgeordnetenwatch.de/profile/armin-laschet",
+  "mandat_vorher": 53404
  },
  "Norbert Röttgen": {
   "politiker": 79043,
@@ -54,7 +56,8 @@
  "Beatrix von Storch": {
   "politiker": 29202,
   "mandat": 68919,
-  "url": "https://www.abgeordnetenwatch.de/profile/beatrix-von-storch"
+  "url": "https://www.abgeordnetenwatch.de/profile/beatrix-von-storch",
+  "mandat_vorher": 53514
  },
  "Omid Nouripour": {
   "politiker": 79103,
@@ -70,7 +73,8 @@
  "Gregor Gysi": {
   "politiker": 79334,
   "mandat": 68562,
-  "url": "https://www.abgeordnetenwatch.de/profile/gregor-gysi"
+  "url": "https://www.abgeordnetenwatch.de/profile/gregor-gysi",
+  "mandat_vorher": 53789
  },
  "Heidi Reichinnek": {
   "politiker": 149570,

@@ -170,5 +170,25 @@
   "autor": "",
   "seite": "https://commons.wikimedia.org/wiki/File:Alternative-fuer-Deutschland-Logo-2013.svg",
   "stand": 739887
+ },
+ "RAG-Stiftung": {
+  "datei": "RAG-Stiftung.svg",
+  "pfad": "rag-stiftung.svg",
+  "lizenz": "Public domain",
+  "autor": "",
+  "seite": "https://commons.wikimedia.org/wiki/File:RAG-Stiftung.svg",
+  "stand": 739888
+ },
+ "Alfried Krupp von Bohlen und Halbach-Stiftung": {
+  "datei": "Alfried-Krupp-von-Bohlen-und-Halbach-Stiftung-Logo.svg",
+  "pfad": "alfried-krupp-von-bohlen-und-halbach-stiftung-logo.svg",
+  "lizenz": "Public domain",
+  "autor": "Alfried Krupp von Bohlen und Halbach-Stiftung",
+  "seite": "https://commons.wikimedia.org/wiki/File:Alfried-Krupp-von-Bohlen-und-Halbach-Stiftung-Logo.svg",
+  "stand": 739888
+ },
+ "Brost-Stiftung": {
+  "pfad": null,
+  "stand": 739888
  }
 }
