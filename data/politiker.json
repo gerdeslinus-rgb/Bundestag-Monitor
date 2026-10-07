@@ -20,7 +20,8 @@
  "Norbert Röttgen": {
   "politiker": 79043,
   "mandat": 68839,
-  "url": "https://www.abgeordnetenwatch.de/profile/norbert-roettgen"
+  "url": "https://www.abgeordnetenwatch.de/profile/norbert-roettgen",
+  "mandat_vorher": 53803
  },
  "Carsten Linnemann": {
   "politiker": 79149,
@@ -31,27 +32,32 @@
  "Lars Klingbeil": {
   "politiker": 79241,
   "mandat": 68651,
-  "url": "https://www.abgeordnetenwatch.de/profile/lars-klingbeil"
+  "url": "https://www.abgeordnetenwatch.de/profile/lars-klingbeil",
+  "mandat_vorher": 53740
  },
  "Bärbel Bas": {
   "politiker": 79455,
   "mandat": 68407,
-  "url": "https://www.abgeordnetenwatch.de/profile/baerbel-bas"
+  "url": "https://www.abgeordnetenwatch.de/profile/baerbel-bas",
+  "mandat_vorher": 53820
  },
  "Matthias Miersch": {
   "politiker": 79133,
   "mandat": 68743,
-  "url": "https://www.abgeordnetenwatch.de/profile/matthias-miersch"
+  "url": "https://www.abgeordnetenwatch.de/profile/matthias-miersch",
+  "mandat_vorher": 53752
  },
  "Alice Weidel": {
   "politiker": 108379,
   "mandat": 68967,
-  "url": "https://www.abgeordnetenwatch.de/profile/alice-weidel"
+  "url": "https://www.abgeordnetenwatch.de/profile/alice-weidel",
+  "mandat_vorher": 53712
  },
  "Tino Chrupalla": {
   "politiker": 145755,
   "mandat": 68470,
-  "url": "https://www.abgeordnetenwatch.de/profile/tino-chrupalla"
+  "url": "https://www.abgeordnetenwatch.de/profile/tino-chrupalla",
+  "mandat_vorher": 53860
  },
  "Beatrix von Storch": {
   "politiker": 29202,
@@ -68,7 +74,8 @@
  "Ricarda Lang": {
   "politiker": 164990,
   "mandat": 68690,
-  "url": "https://www.abgeordnetenwatch.de/profile/ricarda-lang"
+  "url": "https://www.abgeordnetenwatch.de/profile/ricarda-lang",
+  "mandat_vorher": 53692
  },
  "Gregor Gysi": {
   "politiker": 79334,
@@ -79,31 +86,37 @@
  "Heidi Reichinnek": {
   "politiker": 149570,
   "mandat": 68819,
-  "url": "https://www.abgeordnetenwatch.de/profile/heidi-reichinnek"
+  "url": "https://www.abgeordnetenwatch.de/profile/heidi-reichinnek",
+  "mandat_vorher": 53483
  },
  "Julia Klöckner": {
   "politiker": 110066,
   "mandat": 68653,
-  "url": "https://www.abgeordnetenwatch.de/profile/julia-kloeckner"
+  "url": "https://www.abgeordnetenwatch.de/profile/julia-kloeckner",
+  "mandat_vorher": 53571
  },
  "Saskia Esken": {
   "politiker": 79387,
   "mandat": 68512,
-  "url": "https://www.abgeordnetenwatch.de/profile/saskia-esken"
+  "url": "https://www.abgeordnetenwatch.de/profile/saskia-esken",
+  "mandat_vorher": 53664
  },
  "Stephan Brandner": {
   "politiker": 32337,
   "mandat": 68447,
-  "url": "https://www.abgeordnetenwatch.de/profile/stephan-brandner"
+  "url": "https://www.abgeordnetenwatch.de/profile/stephan-brandner",
+  "mandat_vorher": 54061
  },
  "Britta Haßelmann": {
   "politiker": 79325,
   "mandat": 68582,
-  "url": "https://www.abgeordnetenwatch.de/profile/britta-hasselmann"
+  "url": "https://www.abgeordnetenwatch.de/profile/britta-hasselmann",
+  "mandat_vorher": 53412
  },
  "Sören Pellmann": {
   "politiker": 146117,
   "mandat": 68790,
-  "url": "https://www.abgeordnetenwatch.de/profile/soeren-pellmann"
+  "url": "https://www.abgeordnetenwatch.de/profile/soeren-pellmann",
+  "mandat_vorher": 53856
  }
 }
